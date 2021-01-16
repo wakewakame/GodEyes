@@ -88,9 +88,21 @@ const Component = class {
 			(x < this.left + this.width) && (y < this.top + this.height)
 		);
 	}
+	drop(files, x, y) {
+		x -= this.left; y -= this.top;
+		for(let index = this.children.length - 1; index >= 0; index--) {
+			const child = this.children[index];
+			if (child.isHit(x, y)) {
+				child.drop(files, x, y);
+				return;
+			}
+		}
+		this.onDrop(files);
+	}
 	onSetup() {}
 	onDraw() {}
 	onResize() {}
+	onDrop(files) {}
 };
 
 const RootComponent = class extends Component {
@@ -131,6 +143,13 @@ const RootComponent = class extends Component {
 			this.pMouse.zDelta += e.wheelDelta;
 		});
 		this.canvas.oncontextmenu = () => { return false; };
+		document.addEventListener("dragover", e => { e.preventDefault(); });
+		document.addEventListener("drop", e => {
+			e.preventDefault();
+			const files = e.dataTransfer.files;
+			if (files.length === 0) return;
+			this.drop(files, e.x, e.y);
+		});
 	}
 };
 
@@ -143,6 +162,9 @@ const MainComponent = class extends Component {
 				this.context.fillStyle = "rgb(0, 0, 0)";
 				this.context.fillRect(this.mouse.x + 40, this.mouse.y, 30, 30);
 			}
+			onDrop(files) {
+				console.log(files);
+			}
 		};
 		const ChildB = class extends Component {
 			onDraw() {
@@ -151,12 +173,18 @@ const MainComponent = class extends Component {
 				this.context.fillStyle = "rgb(0, 0, 255)";
 				this.context.fillRect(this.mouse.x, this.mouse.y + 40, 30, 30);
 			}
+			onDrop(files) {
+				console.log(files);
+			}
 		};
 		this.addChild(new ChildA(100, 100, 500, 500)).addChild(new ChildB(100, 100, 300, 300));
 	}
 	onDraw() {
 		this.context.fillStyle = "rgb(255, 255, 255)";
 		this.context.fillRect(0, 0, this.width, this.height);
+	}
+	onDrop(files) {
+		console.log(files);
 	}
 };
 
