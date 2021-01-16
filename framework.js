@@ -8,6 +8,7 @@ const Component = class {
 		this.width = width ? width : 0;
 		this.height = height ? height : 0;
 		this.children = [];
+		this.activeChild = null;
 		this.mouse = {
 			x: 0, y: 0,
 			px: 0, py: 0,
@@ -22,6 +23,12 @@ const Component = class {
 			mPressed: false, pMPressed: false,
 			zDelta: 0
 		};
+		this.keyboard = {
+			ctrl: false,
+			shift: false,
+			alt: false,
+			press: new Set()
+		};
 	}
 	addChild(child) {
 		this.children.push(child);
@@ -34,10 +41,14 @@ const Component = class {
 	}
 	draw() {
 		this.context.save();
-		this.context.translate(this.left, this.top);
-		this.onDraw();
-		this.children.forEach(child => { child.draw(); });
-		this.context.restore();
+		try {
+			this.context.translate(this.left, this.top);
+			this.onDraw();
+			this.children.forEach(child => { child.draw(); });
+		}
+		finally {
+			this.context.restore();
+		}
 	}
 	resize(width, height) {
 		this.width = width;
@@ -55,7 +66,10 @@ const Component = class {
 		if (lClick) { this.mouse.lDragStartX = this.mouse.x; this.mouse.lDragStartY = this.mouse.y; }
 		if (rClick) { this.mouse.rDragStartX = this.mouse.x; this.mouse.rDragStartY = this.mouse.y; }
 		if (mClick) { this.mouse.mDragStartX = this.mouse.x; this.mouse.mDragStartY = this.mouse.y; }
-		this.mouse.zDelta += zDelta;
+		this.mouse.zDelta = zDelta;
+
+		let activateChildIndex = this.children.length - 1;
+		if (lClick) { this.activeChild = null; }
 
 		let hitFrag = false, lDragFrag = false, rDragFrag = false, mDragFrag = false;
 		for(let index = this.children.length - 1; index >= 0; index--) {
@@ -63,11 +77,13 @@ const Component = class {
 			if ((!hitFrag) && child.isHit(this.mouse.x, this.mouse.y)) {
 				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
 				hitFrag = true;
+				if (lClick) { activateChildIndex = index; this.activeChild = child; }
 				continue;
 			};
 			if ((!lDragFrag) && lPressed && child.isHit(this.mouse.lDragStartX, this.mouse.lDragStartY)) {
 				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
 				lDragFrag = true;
+				console.log("swap");
 				continue;
 			};
 			if ((!rDragFrag) && rPressed && child.isHit(this.mouse.rDragStartX, this.mouse.rDragStartY)) {
@@ -80,6 +96,21 @@ const Component = class {
 				mDragFrag = true;
 				continue;
 			};
+		}
+
+		for(let i = activateChildIndex; i < this.children.length - 1; i++) {
+			const tmp = this.children[i];
+			this.children[i] = this.children[i + 1];
+			this.children[i + 1] = tmp;
+		}
+	}
+	setKey(ctrl, shift, alt, press) {
+		this.keyboard.ctrl  = ctrl;
+		this.keyboard.shift = shift;
+		this.keyboard.alt   = alt;
+		this.keyboard.press = new Set(press);
+		if (this.activeChild !== null) {
+			this.activeChild.setKey(ctrl, shift, alt, press);
 		}
 	}
 	isHit(x, y) {
@@ -111,11 +142,15 @@ const RootComponent = class extends Component {
 		this.canvas = canvas;
 		const context = this.canvas.getContext("2d");
 		this.pMouse = { x: 0, y: 0, lPressed: false, rPressed: false, mPressed: false, zDelta: 0 };
+		this.pKeyboard = { ctrl: false, shift: false, alt: false, press: new Set() };
 		this.setEventListener();
 		this.setup(context);
 	}
 	draw() {
 		super.setMouse(this.pMouse.x, this.pMouse.y, this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed, this.pMouse.zDelta);
+		this.pMouse.zDelta = 0;
+		super.setKey(this.pKeyboard.ctrl, this.pKeyboard.shift, this.pKeyboard.alt, this.pKeyboard.press);
+		this.pKeyboard.press.clear();
 		super.draw();
 	}
 	resize(width, height) {
@@ -125,6 +160,19 @@ const RootComponent = class extends Component {
 		this.children.forEach(child => { child.resize(this.width, this.height); });
 	}
 	setEventListener() {
+		this.canvas.addEventListener("keydown", e => {
+			if (e.key === "Control") this.pKeyboard.ctrl  = true;
+			if (e.key === "Shift")   this.pKeyboard.shift = true;
+			if (e.key === "Alt")     this.pKeyboard.alt   = true;
+		});
+		this.canvas.addEventListener("keyup", e => {
+			if (e.key === "Control") this.pKeyboard.ctrl  = false;
+			if (e.key === "Shift")   this.pKeyboard.shift = false;
+			if (e.key === "Alt")     this.pKeyboard.alt   = false;
+		});
+		this.canvas.addEventListener("keypress", e => {
+			this.pKeyboard.press.add(e.key);
+		});
 		this.canvas.addEventListener("mousemove", e => {
 			this.pMouse.x = e.offsetX;
 			this.pMouse.y = e.offsetY;
@@ -140,6 +188,7 @@ const RootComponent = class extends Component {
 			if (e.which === 3) this.pMouse.rPressed = false;
 		});
 		this.canvas.addEventListener("mousewheel", e => {
+			if (e.ctrlKey) { e.preventDefault(); }
 			this.pMouse.zDelta += e.wheelDelta;
 		});
 		this.canvas.oncontextmenu = () => { return false; };
