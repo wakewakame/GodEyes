@@ -32,6 +32,7 @@ const Component = class {
 	}
 	addChild(child) {
 		this.children.push(child);
+		this.activeChild = child;
 		child.setup(this.context);
 		return child;
 	}
