@@ -25,25 +25,26 @@ const Component = class {
 	}
 	addChild(child) {
 		this.children.push(child);
-		child._setup(this.context);
+		child.setup(this.context);
 		return child;
 	}
-	_setup(context) {
+	setup(context) {
 		this.context = context;
-		this.setup();
+		this.onSetup();
 	}
-	_draw() {
+	draw() {
 		this.context.save();
 		this.context.translate(this.left, this.top);
-		this.draw();
-		this.children.forEach(child => { child._draw(); });
+		this.onDraw();
+		this.children.forEach(child => { child.draw(); });
 		this.context.restore();
 	}
-	_resize(width, height) {
+	resize(width, height) {
 		this.width = width;
 		this.height = height;
+		this.onResize();
 	}
-	_mouse(x, y, lPressed, rPressed, mPressed, zDelta) {
+	setMouse(x, y, lPressed, rPressed, mPressed, zDelta) {
 		this.mouse.px = this.mouse.x; this.mouse.py = this.mouse.y;
 		this.mouse.x = x - this.left; this.mouse.y = y - this.top;
 		this.mouse.pLPressed = this.mouse.lPressed; this.mouse.pRPressed = this.mouse.rPressed; this.mouse.pMPressed = this.mouse.mPressed;
@@ -60,22 +61,22 @@ const Component = class {
 		for(let index = this.children.length - 1; index >= 0; index--) {
 			const child = this.children[index];
 			if ((!hitFrag) && child.isHit(this.mouse.x, this.mouse.y)) {
-				child._mouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
 				hitFrag = true;
 				continue;
 			};
 			if ((!lDragFrag) && lPressed && child.isHit(this.mouse.lDragStartX, this.mouse.lDragStartY)) {
-				child._mouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
 				lDragFrag = true;
 				continue;
 			};
 			if ((!rDragFrag) && rPressed && child.isHit(this.mouse.rDragStartX, this.mouse.rDragStartY)) {
-				child._mouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
 				rDragFrag = true;
 				continue;
 			};
 			if ((!mDragFrag) && mPressed && child.isHit(this.mouse.mDragStartX, this.mouse.mDragStartY)) {
-				child._mouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
 				mDragFrag = true;
 				continue;
 			};
@@ -87,8 +88,9 @@ const Component = class {
 			(x < this.left + this.width) && (y < this.top + this.height)
 		);
 	}
-	setup() {}
-	draw() {}
+	onSetup() {}
+	onDraw() {}
+	onResize() {}
 };
 
 const RootComponent = class extends Component {
@@ -98,16 +100,17 @@ const RootComponent = class extends Component {
 		const context = this.canvas.getContext("2d");
 		this.pMouse = { x: 0, y: 0, lPressed: false, rPressed: false, mPressed: false, zDelta: 0 };
 		this.setEventListener();
-		this._setup(context);
+		this.setup(context);
 	}
-	_draw() {
-		super._mouse(this.pMouse.x, this.pMouse.y, this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed, this.pMouse.zDelta);
-		super._draw();
+	draw() {
+		super.setMouse(this.pMouse.x, this.pMouse.y, this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed, this.pMouse.zDelta);
+		super.draw();
 	}
-	_resize(width, height) {
+	resize(width, height) {
 		this.canvas.width = width;
 		this.canvas.height = height;
-		super._resize(width, height);
+		super.resize(width, height);
+		this.children.forEach(child => { child.resize(this.width, this.height); });
 	}
 	setEventListener() {
 		this.canvas.addEventListener("mousemove", e => {
@@ -132,9 +135,9 @@ const RootComponent = class extends Component {
 };
 
 const MainComponent = class extends Component {
-	setup() {
+	onSetup() {
 		const ChildA = class extends Component {
-			draw() {
+			onDraw() {
 				this.context.fillStyle = "rgb(255, 0, 0)";
 				this.context.fillRect(0, 0, this.width, this.height);
 				this.context.fillStyle = "rgb(0, 0, 0)";
@@ -142,7 +145,7 @@ const MainComponent = class extends Component {
 			}
 		};
 		const ChildB = class extends Component {
-			draw() {
+			onDraw() {
 				this.context.fillStyle = "rgb(0, 255, 0)";
 				this.context.fillRect(0, 0, this.width, this.height);
 				this.context.fillStyle = "rgb(0, 0, 255)";
@@ -150,9 +153,8 @@ const MainComponent = class extends Component {
 			}
 		};
 		this.addChild(new ChildA(100, 100, 500, 500)).addChild(new ChildB(100, 100, 300, 300));
-		console.log(this.children);
 	}
-	draw() {
+	onDraw() {
 		this.context.fillStyle = "rgb(255, 255, 255)";
 		this.context.fillRect(0, 0, this.width, this.height);
 	}
@@ -162,10 +164,10 @@ document.addEventListener("DOMContentLoaded", e => {
 	const canvas = document.getElementById("canvas");
 	const rootComponent = new RootComponent(canvas);
 	window.addEventListener("resize", e => {
-		rootComponent._resize(window.innerWidth, window.innerHeight);
+		rootComponent.resize(window.innerWidth, window.innerHeight);
 	});
-	rootComponent._resize(window.innerWidth, window.innerHeight);
+	rootComponent.resize(window.innerWidth, window.innerHeight);
 	rootComponent.addChild(new MainComponent(0, 0, rootComponent.width, rootComponent.height));
-	const loop = () => { rootComponent._draw(); requestAnimationFrame(loop); };
+	const loop = () => { rootComponent.draw(); requestAnimationFrame(loop); };
 	loop();
 });
