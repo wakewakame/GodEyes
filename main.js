@@ -41,7 +41,7 @@ const MainComponent = class extends Component {
 		});
 	}
 	onDraw() {
-		this.context.fillStyle = "#fff";
+		this.context.fillStyle = "#202020";
 		this.context.fillRect(0, 0, this.width, this.height);
 	}
 	onResize() {
