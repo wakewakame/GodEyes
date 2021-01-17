@@ -7,6 +7,7 @@ const Component = class {
 		this.top = top ? top : 0;
 		this.width = width ? width : 0;
 		this.height = height ? height : 0;
+		this.visible = true;
 		this.children = [];
 		this.activeChild = null;
 		this.mouse = {
@@ -36,11 +37,19 @@ const Component = class {
 		child.setup(this.context);
 		return child;
 	}
+	removeChild(child) {
+		if (this.activeChild === child) {
+			this.activeChild = null;
+		}
+		this.children = this.children.filter(c => (c !== child));
+		return child;
+	}
 	setup(context) {
 		this.context = context;
 		this.onSetup();
 	}
 	draw() {
+		if (!this.visible) return;
 		this.context.save();
 		try {
 			this.context.translate(this.left, this.top);
