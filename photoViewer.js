@@ -1,8 +1,7 @@
 /*
 
 Todo
-	- サムネイルのアスペクト比を正す
-	- リストが範囲外に描画されないようにclipする
+	- デザインをいい感じにする
 	- 拡大時にスクロール位置がずれないようにする
 	- スクロールバーの追加
 	- 拡大縮小のバーを表示
@@ -55,17 +54,32 @@ const PhotoItemComponent = class extends Component {
 		this.thumbnail = thumbnail;
 	}
 	onDraw() {
+		// 描画範囲外にいる要素は除外
 		if (this.left + this.width < 0) return;
 		if (this.top + this.height < 0) return;
 		if (this.parent.width <= this.left) return;
 		if (this.parent.height <= this.top) return;
-		this.context.fillStyle = "#ffffff20";
-		this.context.fillRect(0, 0, this.width, this.height);
+
+		// 表示する画像が一定サイズ以下であれば縮小版の画像を表示する(処理速度向上のため)
 		const img =
 			(this.width > this.thumbnail.width * 1.5 && this.height > this.thumbnail.height * 1.5)
 				? this.img
 				: this.thumbnail;
-		this.context.drawImage(img, 0, 0, this.width, this.height);
+
+		// 表示スケールの計算
+		let scale = ((img.width / img.height) > (this.width / this.height)) ? (this.width / img.width) : (this.height / img.height);
+		scale *= 0.9;
+		const width = img.width * scale;
+		const height = img.height * scale;
+
+		// ハイライトの表示
+		if (this.isHit(this.parent.mouse.x, this.parent.mouse.y)) {
+			this.context.fillStyle = "#ffffff20";
+			this.context.fillRect(0, 0, this.width, this.height);
+		}
+
+		// 画像の表示
+		this.context.drawImage(img, (this.width - width) * 0.5, (this.height - height) * 0.5, width, height);
 	}
 };
 
