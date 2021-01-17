@@ -25,8 +25,12 @@ const MainComponent = class extends Component {
 		this.scroll = 0.0;
 		this.itemW = 300;
 		this.itemH = 200;
+		this.zDelta = 0;
 	}
 	onDraw() {
+		this.zDelta *= 0.6;
+		this.zDelta += this.mouse.zDelta;
+
 		this.context.fillStyle = "#202020";
 		this.context.fillRect(0, 0, this.width, this.height);
 
@@ -39,12 +43,12 @@ const MainComponent = class extends Component {
 		}
 
 		if (this.keyboard.ctrl) {
-			this.zoom *= 2.0 ** (this.mouse.zDelta / 1200.0);
+			this.zoom *= 2.0 ** (this.zDelta / 1200.0);
 			this.zoom = Math.min(this.zoom, this.width / this.itemW, this.height / this.itemH);
-			this.zoom = Math.max(this.zoom, 0.2);
+			this.zoom = Math.max(this.zoom, 0.4);
 		}
 		else {
-			this.scroll -= this.mouse.zDelta;
+			this.scroll -= this.zDelta;
 		}
 		const itemW = this.itemW * this.zoom; const itemH = this.itemH * this.zoom;
 		const icoW = itemW * 0.9; const icoH = itemH * 0.9;
