@@ -7,11 +7,12 @@ const Component = class {
 		this.top = top ? top : 0;
 		this.width = width ? width : 0;
 		this.height = height ? height : 0;
-		this.visible = true;
+		this.isVisible = true;
 		this.clip = false;
 		this.parent = null;
 		this.children = [];
 		this.activeChild = null;
+		this.events = new EventTarget();
 		this.mouse = {
 			x: 0, y: 0,
 			px: 0, py: 0,
@@ -54,7 +55,7 @@ const Component = class {
 		this.onSetup();
 	}
 	draw() {
-		if (!this.visible) return;
+		if (!this.isVisible) return;
 		this.context.save();
 		try {
 			this.context.translate(this.left, this.top);
@@ -94,6 +95,7 @@ const Component = class {
 		let hitFrag = false, lDragFrag = false, rDragFrag = false, mDragFrag = false;
 		for(let index = this.children.length - 1; index >= 0; index--) {
 			const child = this.children[index];
+			if (!child.isVisible) continue;
 			if ((!hitFrag) && child.isHit(this.mouse.x, this.mouse.y)) {
 				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				hitFrag = true;
@@ -128,9 +130,17 @@ const Component = class {
 		this.keyboard.shift = shift;
 		this.keyboard.alt   = alt;
 		this.keyboard.press = new Set(press);
-		if (this.activeChild !== null) {
+		if (this.activeChild !== null && this.activeChild.isVisible) {
 			this.activeChild.setKey(ctrl, shift, alt, press);
 		}
+	}
+	toVisible() {
+		this.isVisible = true;
+	}
+	toInvisible() {
+		this.isVisible = false;
+		this.setMouse(this.mouse.x, this.mouse.y, false, false, false, 0, false);
+		this.setKey(false, false, false, new Set());
 	}
 	isHit(x, y) {
 		return (

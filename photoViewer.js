@@ -53,7 +53,6 @@ const PhotoItemComponent = class extends Component {
 		this.name = name;
 		this.img = img;
 		this.thumbnail = thumbnail;
-
 		this.isSelected = false;
 	}
 	onDraw() {
@@ -62,6 +61,11 @@ const PhotoItemComponent = class extends Component {
 		if (this.top + this.height < 0) return;
 		if (this.parent.width <= this.left) return;
 		if (this.parent.height <= this.top) return;
+
+		// ダブルクリック時にイベントリスナーを発火
+		if (this.mouse.lDoubleClick) {
+			this.events.dispatchEvent(new CustomEvent("open", { detail: this }));
+		}
 
 		// 表示する画像が一定サイズ以下であれば縮小版の画像を表示する(処理速度向上のため)
 		const img =
@@ -97,19 +101,28 @@ const PhotoViewerComponent = class extends Component {
 	onSetup() {
 		this.zoom = 1.0;
 		this.scroll = 0.0;
-		this.itemW = 300;
+		this.itemW = 200;
 		this.itemH = 200;
 		this.zDelta = 0;
 		this.clip = true;
 		this.photos = new Array();
+		this.onOpen = function(e) {
+			this.events.dispatchEvent(new CustomEvent("open", { detail: e.detail }));
+		}.bind(this);
 	}
 	addChild(child) {
 		super.addChild(child);
-		if (child instanceof PhotoItemComponent) { this.photos.push(child); }
+		if (child instanceof PhotoItemComponent) {
+			this.photos.push(child);
+			child.events.addEventListener("open", this.onOpen);
+		}
 	}
 	removeChild(child) {
 		super.removeChild(child);
-		if (child instanceof PhotoItemComponent) { this.photos = this.photos.filter(c => (c !== child)); }
+		if (child instanceof PhotoItemComponent) {
+			this.photos = this.photos.filter(c => (c !== child));
+			child.events.removeEventListener("open", this.onOpen);
+		}
 	}
 	onDraw() {
 		// スクロールをスムーズにする
@@ -179,6 +192,7 @@ const PhotoViewerComponent = class extends Component {
 			this.photos.forEach(c => { c.isSelected = false; });
 		}
 
+		/*
 		// Ctrl+Aで全選択
 		if (this.keyboard.ctrl && this.keyboard.press.has("a")) {
 			this.photos.forEach(c => { c.isSelected = true; });
@@ -186,5 +200,6 @@ const PhotoViewerComponent = class extends Component {
 
 		// Deleteキーで選択されているものを削除
 		console.log(this.keyboard.press);
+		*/
 	}
 };
