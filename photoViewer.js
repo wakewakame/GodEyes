@@ -92,7 +92,7 @@ const PhotoItemComponent = class extends Component {
 		}
 
 		// 画像の表示
-		this.context.drawImage(img, (this.width - width) * 0.5, (this.height - height) * 0.5, width, height);
+		this.context.drawImage(img, (this.width - width) * 0.5, this.height * 0.95 - height, width, height);
 	}
 };
 
@@ -102,6 +102,10 @@ const PhotoViewerComponent = class extends Component {
 		this.scroll = 0.0;
 		this.itemW = 200;
 		this.itemH = 200;
+		this.itemW_ = this.itemW;
+		this.itemH_ = this.itemH;
+		this.listX = 0;
+		this.listW = 0;
 		this.zDelta = 0;
 		this.clip = true;
 		this.photos = new Array();
@@ -113,16 +117,12 @@ const PhotoViewerComponent = class extends Component {
 			onSetup() { this.pTop = this.top; }
 			draw() { this.left = this.parent.width - this.width; super.draw(); }
 			onDraw() {
+				const listHeight = Math.ceil(this.parent.photos.length / this.parent.listX) * this.parent.itemH_;
+				if ((listHeight === 0) || (listHeight <= this.parent.height)) return;
 				this.context.fillStyle = "#171717";
 				this.context.fillRect(0, -this.top, this.width, this.parent.height);
 				this.context.fillStyle = "#4d4d4d";
 				this.context.fillRect(0, 0, this.width, this.height);
-				const itemW = this.parent.itemW * this.parent.zoom;
-				const itemH = this.parent.itemH * this.parent.zoom;
-				const listX = Math.floor((this.parent.width - this.width) / itemW);
-				const listW = itemW * listX;
-				const listHeight = Math.ceil(this.parent.photos.length / listX) * itemH;
-				if ((listHeight === 0) || (listHeight <= this.parent.height)) return;
 				this.height = this.parent.height * this.parent.height / listHeight;
 				if (this.mouse.lPressed) {
 					if (!this.mouse.pLPressed) { this.pTop = this.top; }
@@ -174,9 +174,12 @@ const PhotoViewerComponent = class extends Component {
 		// Ctrlが押された状態でのスクロールは拡大縮小
 		if (this.keyboard.ctrl) {
 			const zoom = 2.0 ** (this.zDelta / 1200.0);
+			const zoom_ = this.zoom;
 			this.zoom *= zoom;
 			this.zoom = Math.min(this.zoom, this.width / this.itemW, this.height / this.itemH);
 			this.zoom = Math.max(this.zoom, 0.4);
+			this.itemW_ = this.itemW * this.zoom;
+			this.itemH_ = this.itemH * this.zoom;
 		}
 
 		// 通常のスクロール
@@ -184,19 +187,19 @@ const PhotoViewerComponent = class extends Component {
 			this.scroll -= this.zDelta;
 		}
 
+		this.listX = Math.floor((this.width - this.scrollbar.width) / this.itemW_);
+		this.listW = this.itemW_ * this.listX;
+		this.scroll = Math.min(this.scroll, Math.ceil(this.photos.length / this.listX) * this.itemH_ - this.height);
+		this.scroll = Math.max(this.scroll, 0);
+
 		// ショートカットの処理
 		this.shortcut();
 
 		// すべての子コンポーネントの表示位置を計算
-		const itemW = this.itemW * this.zoom; const itemH = this.itemH * this.zoom;
-		const listX = Math.floor((this.width - this.scrollbar.width) / itemW);
-		const listW = itemW * listX;
-		this.scroll = Math.min(this.scroll, Math.ceil(this.photos.length / listX) * itemH - this.height);
-		this.scroll = Math.max(this.scroll, 0);
 		this.photos.forEach((component, index) => {
-			component.left = ((this.width - this.scrollbar.width) - listW) * 0.5 + (index % listX) * itemW;
-			component.top = Math.floor(index / listX) * itemH - this.scroll;
-			component.width = itemW; component.height = itemH;
+			component.left = ((this.width - this.scrollbar.width) - this.listW) * 0.5 + (index % this.listX) * this.itemW_;
+			component.top = Math.floor(index / this.listX) * this.itemH_ - this.scroll;
+			component.width = this.itemW_; component.height = this.itemH_;
 			component.left += 4; component.top += 4;
 			component.width -= 8; component.height -= 8;
 		});
