@@ -16,12 +16,9 @@ const Component = class {
 		this.mouse = {
 			x: 0, y: 0,
 			px: 0, py: 0,
-			lDragStartX: 0,
-			lDragStartY: 0,
-			rDragStartX: 0,
-			rDragStartY: 0,
-			mDragStartX: 0,
-			mDragStartY: 0,
+			lDragStartX: 0, lDragStartY: 0,
+			rDragStartX: 0, rDragStartY: 0,
+			mDragStartX: 0, mDragStartY: 0,
 			lPressed: false, pLPressed: false,
 			rPressed: false, pRPressed: false,
 			mPressed: false, pMPressed: false,
@@ -102,21 +99,22 @@ const Component = class {
 				if (lClick) { activateChildIndex = index; this.activeChild = child; }
 				continue;
 			};
-			if ((!lDragFrag) && lPressed && child.isHit(this.mouse.lDragStartX, this.mouse.lDragStartY)) {
+			if ((!lDragFrag) && lPressed && child.mouse.lPressed) {
 				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				lDragFrag = true;
 				continue;
 			};
-			if ((!rDragFrag) && rPressed && child.isHit(this.mouse.rDragStartX, this.mouse.rDragStartY)) {
+			if ((!rDragFrag) && rPressed && child.mouse.rPressed) {
 				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				rDragFrag = true;
 				continue;
 			};
-			if ((!mDragFrag) && mPressed && child.isHit(this.mouse.mDragStartX, this.mouse.mDragStartY)) {
+			if ((!mDragFrag) && mPressed && child.mouse.mPressed) {
 				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				mDragFrag = true;
 				continue;
 			};
+			child.setMouse(child.mouse.x, child.mouse.y, false, false, false, 0, false);
 		}
 
 		for(let i = activateChildIndex; i < this.children.length - 1; i++) {

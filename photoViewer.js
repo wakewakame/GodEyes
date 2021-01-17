@@ -80,14 +80,17 @@ const PhotoItemComponent = class extends Component {
 
 		// ハイライトの表示
 		if (this.isHit(this.parent.mouse.x, this.parent.mouse.y)) {
-			this.context.fillStyle = "#ffffff20";
+			this.context.fillStyle = "#4d4d4d";
 			this.context.fillRect(0, 0, this.width, this.height);
 		}
 
 		// 選択状態の表示
-		this.isSelected |= (this.mouse.lPressed && (!this.mouse.pLPressed));
+		if (this.mouse.lPressed && (!this.mouse.pLPressed)) {
+			if (this.keyboard.ctrl) { this.isSelected = !this.isSelected; }
+			else { this.isSelected |= true; }
+		}
 		if (this.isSelected) {
-			this.context.fillStyle = "#ffffff60";
+			this.context.fillStyle = "#777777";
 			this.context.fillRect(0, 0, this.width, this.height);
 		}
 
@@ -124,9 +127,10 @@ const PhotoViewerComponent = class extends Component {
 				this.context.fillStyle = "#4d4d4d";
 				this.context.fillRect(0, 0, this.width, this.height);
 				this.height = this.parent.height * this.parent.height / listHeight;
-				if (this.parent.mouse.lPressed) {
+				if (this.mouse.lPressed) {
 					if (!this.parent.mouse.pLPressed) { this.pTop = this.top; }
-					this.top = this.pTop + this.parent.mouse.y - this.parent.mouse.lDragStartY;
+					const py = this.mouse.lDragStartY - (this.top - this.pTop);
+					this.top = this.pTop + this.mouse.y - py;
 					this.top = Math.max(Math.min(this.top, this.parent.height - this.height), 0);
 					this.parent.scroll = this.top * listHeight / this.parent.height;
 				}
@@ -220,7 +224,7 @@ const PhotoViewerComponent = class extends Component {
 	}
 	shortcut() {
 		// シフトキーを押しながらで複数選択できるようにする
-		if ((!this.keyboard.shift) && this.mouse.lPressed && (!this.mouse.pLPressed)) {
+		if ((!this.keyboard.shift && !this.keyboard.ctrl) && this.mouse.lPressed && (!this.mouse.pLPressed)) {
 			this.photos.forEach(c => { c.isSelected = false; });
 		}
 
