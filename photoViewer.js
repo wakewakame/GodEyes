@@ -1,11 +1,11 @@
 /*
 
 Todo
-	- 写真のクリックイベントをイベントリスナーに追加
+	- ファイルドロップが一発で通らないバグの修正
+	- スクロール時にファイルが選択されてしまうバグの修正
 	- Ctrl+Aなどのショートカット処理を追加
 	- デザインをいい感じにする
 	- 拡大時にスクロール位置がずれないようにする
-	- スクロールバーの追加
 	- 拡大縮小のバーを表示
 	- 選択、矩形選択の機能を追加
 	- Component(基底クラス)にイベントリスナー機能を追加
@@ -109,6 +109,34 @@ const PhotoViewerComponent = class extends Component {
 		this.onOpen = function(e) {
 			this.events.dispatchEvent(new CustomEvent("open", { detail: e.detail }));
 		}.bind(this);
+		const ScrollBar = class extends Component {
+			constructor(width) { super(0, 0, width, 0); }
+			onSetup() { this.pTop = this.top; }
+			draw() { this.left = this.parent.width - this.width; super.draw(); }
+			onDraw() {
+				this.context.fillStyle = "#171717";
+				this.context.fillRect(0, -this.top, this.width, this.parent.height);
+				this.context.fillStyle = "#4d4d4d";
+				this.context.fillRect(0, 0, this.width, this.height);
+				const itemW = this.parent.itemW * this.parent.zoom;
+				const itemH = this.parent.itemH * this.parent.zoom;
+				const listX = Math.floor((this.parent.width - this.width) / itemW);
+				const listW = itemW * listX;
+				const listHeight = Math.ceil(this.parent.photos.length / listX) * itemH;
+				if ((listHeight === 0) || (listHeight <= this.parent.height)) return;
+				this.height = this.parent.height * this.parent.height / listHeight;
+				if (this.mouse.lPressed) {
+					if (!this.mouse.pLPressed) { this.pTop = this.top; }
+					this.top = this.pTop + this.parent.mouse.y - this.parent.mouse.lDragStartY;
+					this.top = Math.max(Math.min(this.top, this.parent.height - this.height), 0);
+					this.parent.scroll = this.top * listHeight / this.parent.height;
+				}
+				else {
+					this.top = this.parent.height * this.parent.scroll / listHeight;
+				}
+			};
+		};
+		this.scrollbar = this.addChild(new ScrollBar(16));
 	}
 	addChild(child) {
 		super.addChild(child);
@@ -116,6 +144,7 @@ const PhotoViewerComponent = class extends Component {
 			this.photos.push(child);
 			child.events.addEventListener("open", this.onOpen);
 		}
+		return child;
 	}
 	removeChild(child) {
 		super.removeChild(child);
@@ -123,6 +152,7 @@ const PhotoViewerComponent = class extends Component {
 			this.photos = this.photos.filter(c => (c !== child));
 			child.events.removeEventListener("open", this.onOpen);
 		}
+		return child;
 	}
 	onDraw() {
 		// スクロールをスムーズにする
@@ -160,12 +190,12 @@ const PhotoViewerComponent = class extends Component {
 
 		// すべての子コンポーネントの表示位置を計算
 		const itemW = this.itemW * this.zoom; const itemH = this.itemH * this.zoom;
-		const listX = Math.floor(this.width / itemW);
+		const listX = Math.floor((this.width - this.scrollbar.width) / itemW);
 		const listW = itemW * listX;
 		this.scroll = Math.min(this.scroll, Math.ceil(this.photos.length / listX) * itemH - this.height);
 		this.scroll = Math.max(this.scroll, 0);
 		this.photos.forEach((component, index) => {
-			component.left = (this.width - listW) * 0.5 + (index % listX) * itemW;
+			component.left = ((this.width - this.scrollbar.width) - listW) * 0.5 + (index % listX) * itemW;
 			component.top = Math.floor(index / listX) * itemH - this.scroll;
 			component.width = itemW; component.height = itemH;
 			component.left += 4; component.top += 4;

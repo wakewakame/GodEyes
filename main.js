@@ -28,12 +28,10 @@ const MainComponent = class extends Component {
 		this.viewer.events.addEventListener("open", e => {
 			this.viewer.toInvisible();
 			this.button.toVisible();
-			console.log("a");
 		});
 		this.button.events.addEventListener("click", e => {
 			this.viewer.toVisible();
 			this.button.toInvisible();
-			console.log("b");
 		});
 	}
 	onDraw() {

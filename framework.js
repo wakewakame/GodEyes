@@ -95,6 +95,9 @@ const Component = class {
 		let hitFrag = false, lDragFrag = false, rDragFrag = false, mDragFrag = false;
 		for(let index = this.children.length - 1; index >= 0; index--) {
 			const child = this.children[index];
+			if (child.mouse.lPressed && (!lPressed)) { child.mouse.lPressed = false; }
+			if (child.mouse.rPressed && (!rPressed)) { child.mouse.rPressed = false; }
+			if (child.mouse.mPressed && (!mPressed)) { child.mouse.mPressed = false; }
 			if (!child.isVisible) continue;
 			if ((!hitFrag) && child.isHit(this.mouse.x, this.mouse.y)) {
 				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
