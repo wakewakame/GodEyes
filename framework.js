@@ -221,6 +221,8 @@ const RootComponent = class extends Component {
 			if (e.which === 2) this.pMouse.mPressed = false;
 			if (e.which === 3) this.pMouse.rPressed = false;
 		});
+		this.canvas.addEventListener("pointerdown", e => { this.canvas.setPointerCapture(e.pointerId); });
+		this.canvas.addEventListener("pointerup", e => { this.canvas.releasePointerCapture(e.pointerId); });
 		this.canvas.addEventListener("dblclick", e => {
 			this.pMouse.lDoubleClick = true;
 		});
