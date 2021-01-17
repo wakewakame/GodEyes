@@ -76,6 +76,7 @@ const PhotoViewerComponent = class extends Component {
 		this.itemW = 300;
 		this.itemH = 200;
 		this.zDelta = 0;
+		this.clip = true;
 		this.photos = new Array();
 	}
 	addChild(child) {

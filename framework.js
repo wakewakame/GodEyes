@@ -8,6 +8,7 @@ const Component = class {
 		this.width = width ? width : 0;
 		this.height = height ? height : 0;
 		this.visible = true;
+		this.clip = false;
 		this.parent = null;
 		this.children = [];
 		this.activeChild = null;
@@ -56,6 +57,10 @@ const Component = class {
 		this.context.save();
 		try {
 			this.context.translate(this.left, this.top);
+			if (this.clip) {
+				this.context.rect(0, 0, this.width, this.height);
+				this.context.clip();
+			}
 			this.onDraw();
 			this.children.forEach(child => { child.draw(); });
 		}
