@@ -13,7 +13,11 @@ const ButtonComponent = class extends Component {
 		this.context.textAlign = "center";
 		this.context.fonr = "48px sans-serif";
 		this.context.fillText(this.label, this.width * 0.5, this.height * 0.5);
-		if (this.mouse.lPressed && (!this.mouse.pLPressed)) {
+		if (
+			(!this.mouse.lPressed) && this.mouse.pLPressed &&
+			this.isHit(this.parent.mouse.x, this.parent.mouse.y) &&
+			this.isHit(this.parent.mouse.lDragStartX, this.parent.mouse.lDragStartY)
+		) {
 			this.events.dispatchEvent(new CustomEvent("click"));
 		}
 	}

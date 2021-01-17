@@ -124,8 +124,8 @@ const PhotoViewerComponent = class extends Component {
 				this.context.fillStyle = "#4d4d4d";
 				this.context.fillRect(0, 0, this.width, this.height);
 				this.height = this.parent.height * this.parent.height / listHeight;
-				if (this.mouse.lPressed) {
-					if (!this.mouse.pLPressed) { this.pTop = this.top; }
+				if (this.parent.mouse.lPressed) {
+					if (!this.parent.mouse.pLPressed) { this.pTop = this.top; }
 					this.top = this.pTop + this.parent.mouse.y - this.parent.mouse.lDragStartY;
 					this.top = Math.max(Math.min(this.top, this.parent.height - this.height), 0);
 					this.parent.scroll = this.top * listHeight / this.parent.height;
