@@ -1,13 +1,14 @@
 /*
 
 Todo
+	- 写真のクリックイベントをイベントリスナーに追加
+	- Ctrl+Aなどのショートカット処理を追加
 	- デザインをいい感じにする
 	- 拡大時にスクロール位置がずれないようにする
 	- スクロールバーの追加
 	- 拡大縮小のバーを表示
 	- 選択、矩形選択の機能を追加
 	- Component(基底クラス)にイベントリスナー機能を追加
-	- 写真のクリックイベントをイベントリスナーに追加
 
 */
 
@@ -52,6 +53,8 @@ const PhotoItemComponent = class extends Component {
 		this.name = name;
 		this.img = img;
 		this.thumbnail = thumbnail;
+
+		this.isSelected = false;
 	}
 	onDraw() {
 		// 描画範囲外にいる要素は除外
@@ -75,6 +78,13 @@ const PhotoItemComponent = class extends Component {
 		// ハイライトの表示
 		if (this.isHit(this.parent.mouse.x, this.parent.mouse.y)) {
 			this.context.fillStyle = "#ffffff20";
+			this.context.fillRect(0, 0, this.width, this.height);
+		}
+
+		// 選択状態の表示
+		this.isSelected |= (this.mouse.lPressed && (!this.mouse.pLPressed));
+		if (this.isSelected) {
+			this.context.fillStyle = "#ffffff60";
 			this.context.fillRect(0, 0, this.width, this.height);
 		}
 
@@ -132,6 +142,9 @@ const PhotoViewerComponent = class extends Component {
 			this.scroll -= this.zDelta;
 		}
 
+		// ショートカットの処理
+		this.shortcut();
+
 		// すべての子コンポーネントの表示位置を計算
 		const itemW = this.itemW * this.zoom; const itemH = this.itemH * this.zoom;
 		const listX = Math.floor(this.width / itemW);
@@ -142,6 +155,8 @@ const PhotoViewerComponent = class extends Component {
 			component.left = (this.width - listW) * 0.5 + (index % listX) * itemW;
 			component.top = Math.floor(index / listX) * itemH - this.scroll;
 			component.width = itemW; component.height = itemH;
+			component.left += 4; component.top += 4;
+			component.width -= 8; component.height -= 8;
 		});
 	}
 	drop(files, x, y) { this.onDrop(files); }
@@ -157,5 +172,19 @@ const PhotoViewerComponent = class extends Component {
 				.then(component => { this.addChild(component); })
 				.catch(err => { console.error(err); });
 		}
+	}
+	shortcut() {
+		// シフトキーを押しながらで複数選択できるようにする
+		if ((!this.keyboard.shift) && this.mouse.lPressed && (!this.mouse.pLPressed)) {
+			this.photos.forEach(c => { c.isSelected = false; });
+		}
+
+		// Ctrl+Aで全選択
+		if (this.keyboard.ctrl && this.keyboard.press.has("a")) {
+			this.photos.forEach(c => { c.isSelected = true; });
+		}
+
+		// Deleteキーで選択されているものを削除
+		console.log(this.keyboard.press);
 	}
 };

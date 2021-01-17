@@ -24,7 +24,8 @@ const Component = class {
 			lPressed: false, pLPressed: false,
 			rPressed: false, pRPressed: false,
 			mPressed: false, pMPressed: false,
-			zDelta: 0
+			zDelta: 0,
+			lDoubleClick: false
 		};
 		this.keyboard = {
 			ctrl: false,
@@ -73,7 +74,7 @@ const Component = class {
 		this.height = height;
 		this.onResize();
 	}
-	setMouse(x, y, lPressed, rPressed, mPressed, zDelta) {
+	setMouse(x, y, lPressed, rPressed, mPressed, zDelta, lDoubleClick) {
 		this.mouse.px = this.mouse.x; this.mouse.py = this.mouse.y;
 		this.mouse.x = x - this.left; this.mouse.y = y - this.top;
 		this.mouse.pLPressed = this.mouse.lPressed; this.mouse.pRPressed = this.mouse.rPressed; this.mouse.pMPressed = this.mouse.mPressed;
@@ -85,6 +86,7 @@ const Component = class {
 		if (rClick) { this.mouse.rDragStartX = this.mouse.x; this.mouse.rDragStartY = this.mouse.y; }
 		if (mClick) { this.mouse.mDragStartX = this.mouse.x; this.mouse.mDragStartY = this.mouse.y; }
 		this.mouse.zDelta = zDelta;
+		this.mouse.lDoubleClick = lDoubleClick;
 
 		let activateChildIndex = this.children.length - 1;
 		if (lClick) { this.activeChild = null; }
@@ -93,24 +95,23 @@ const Component = class {
 		for(let index = this.children.length - 1; index >= 0; index--) {
 			const child = this.children[index];
 			if ((!hitFrag) && child.isHit(this.mouse.x, this.mouse.y)) {
-				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				hitFrag = true;
 				if (lClick) { activateChildIndex = index; this.activeChild = child; }
 				continue;
 			};
 			if ((!lDragFrag) && lPressed && child.isHit(this.mouse.lDragStartX, this.mouse.lDragStartY)) {
-				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				lDragFrag = true;
-				console.log("swap");
 				continue;
 			};
 			if ((!rDragFrag) && rPressed && child.isHit(this.mouse.rDragStartX, this.mouse.rDragStartY)) {
-				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				rDragFrag = true;
 				continue;
 			};
 			if ((!mDragFrag) && mPressed && child.isHit(this.mouse.mDragStartX, this.mouse.mDragStartY)) {
-				child.setMouse(this.mouse.x, this.mouse.y, this.mouse.lPressed, this.mouse.rPressed, this.mouse.mPressed, zDelta);
+				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
 				mDragFrag = true;
 				continue;
 			};
@@ -159,14 +160,19 @@ const RootComponent = class extends Component {
 		super(0, 0, canvas.width, canvas.height);
 		this.canvas = canvas;
 		const context = this.canvas.getContext("2d");
-		this.pMouse = { x: 0, y: 0, lPressed: false, rPressed: false, mPressed: false, zDelta: 0 };
+		this.pMouse = { x: 0, y: 0, lPressed: false, rPressed: false, mPressed: false, zDelta: 0, lDoubleClick: false };
 		this.pKeyboard = { ctrl: false, shift: false, alt: false, press: new Set() };
 		this.setEventListener();
 		this.setup(context);
 	}
 	draw() {
-		super.setMouse(this.pMouse.x, this.pMouse.y, this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed, this.pMouse.zDelta);
+		super.setMouse(
+			this.pMouse.x, this.pMouse.y,
+			this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed,
+			this.pMouse.zDelta, this.pMouse.lDoubleClick
+		);
 		this.pMouse.zDelta = 0;
+		this.pMouse.lDoubleClick = false;
 		super.setKey(this.pKeyboard.ctrl, this.pKeyboard.shift, this.pKeyboard.alt, this.pKeyboard.press);
 		this.pKeyboard.press.clear();
 		super.draw();
@@ -204,6 +210,9 @@ const RootComponent = class extends Component {
 			if (e.which === 1) this.pMouse.lPressed = false;
 			if (e.which === 2) this.pMouse.mPressed = false;
 			if (e.which === 3) this.pMouse.rPressed = false;
+		});
+		this.canvas.addEventListener("dblclick", e => {
+			this.pMouse.lDoubleClick = true;
 		});
 		const mousewheel = e => {
 			if (e.ctrlKey) { e.preventDefault(); }
