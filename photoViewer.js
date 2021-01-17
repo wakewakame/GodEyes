@@ -1,8 +1,8 @@
 /*
 
 Todo
+	- ブラウザの画面外にドラッグしたときにもマウスイベントを受け取るようにする
 	- Ctrl+Aなどのショートカット処理を追加
-	- 拡大時にスクロール位置がずれないようにする
 	- 拡大縮小のバーを表示
 	- 選択、矩形選択の機能を追加
 
@@ -106,6 +106,7 @@ const PhotoViewerComponent = class extends Component {
 		this.itemH_ = this.itemH;
 		this.listX = 0;
 		this.listW = 0;
+		this.listH = 0;
 		this.zDelta = 0;
 		this.clip = true;
 		this.photos = new Array();
@@ -117,22 +118,21 @@ const PhotoViewerComponent = class extends Component {
 			onSetup() { this.pTop = this.top; }
 			draw() { this.left = this.parent.width - this.width; super.draw(); }
 			onDraw() {
-				const listHeight = Math.ceil(this.parent.photos.length / this.parent.listX) * this.parent.itemH_;
-				if ((listHeight === 0) || (listHeight <= this.parent.height)) return;
+				if ((this.parent.listH === 0) || (this.parent.listH <= this.parent.height)) return;
 				this.context.fillStyle = "#171717";
 				this.context.fillRect(0, -this.top, this.width, this.parent.height);
 				this.context.fillStyle = "#4d4d4d";
 				this.context.fillRect(0, 0, this.width, this.height);
-				this.height = this.parent.height * this.parent.height / listHeight;
+				this.height = this.parent.height * this.parent.height / this.parent.listH;
 				if (this.mouse.lPressed) {
 					if (!this.parent.mouse.pLPressed) { this.pTop = this.top; }
 					const py = this.mouse.lDragStartY - (this.top - this.pTop);
 					this.top = this.pTop + this.mouse.y - py;
 					this.top = Math.max(Math.min(this.top, this.parent.height - this.height), 0);
-					this.parent.scroll = this.top * listHeight / this.parent.height;
+					this.parent.scroll = this.top * this.parent.listH / this.parent.height;
 				}
 				else {
-					this.top = this.parent.height * this.parent.scroll / listHeight;
+					this.top = this.parent.height * this.parent.scroll / this.parent.listH;
 				}
 			};
 		};
@@ -174,6 +174,7 @@ const PhotoViewerComponent = class extends Component {
 
 		// Ctrlが押された状態でのスクロールは拡大縮小
 		if (this.keyboard.ctrl) {
+			// アイコンサイズの拡大縮小
 			const zoom = 2.0 ** (this.zDelta / 1200.0);
 			const zoom_ = this.zoom;
 			this.zoom *= zoom;
@@ -181,15 +182,26 @@ const PhotoViewerComponent = class extends Component {
 			this.zoom = Math.max(this.zoom, 0.4);
 			this.itemW_ = this.itemW * this.zoom;
 			this.itemH_ = this.itemH * this.zoom;
+
+			// アイコンサイズの変更に伴い列数の再計算
+			this.listX = Math.floor((this.width - this.scrollbar.width) / this.itemW_);
+			this.listW = this.itemW_ * this.listX;
+
+			// 今見ている部分を中心に拡大縮小する
+			const beforeMiddle = this.scroll / (this.listH - this.height);
+			this.listH = Math.ceil(this.photos.length / this.listX) * this.itemH_;
+			this.scroll = beforeMiddle * (this.listH - this.height);
 		}
 
 		// 通常のスクロール
 		else {
 			this.scroll -= this.zDelta;
+			this.listX = Math.floor((this.width - this.scrollbar.width) / this.itemW_);
+			this.listW = this.itemW_ * this.listX;
+			this.listH = Math.ceil(this.photos.length / this.listX) * this.itemH_;
 		}
 
-		this.listX = Math.floor((this.width - this.scrollbar.width) / this.itemW_);
-		this.listW = this.itemW_ * this.listX;
+		// スクロールの上限チェック
 		this.scroll = Math.min(this.scroll, Math.ceil(this.photos.length / this.listX) * this.itemH_ - this.height);
 		this.scroll = Math.max(this.scroll, 0);
 
