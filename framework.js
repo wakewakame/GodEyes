@@ -8,6 +8,7 @@ const Component = class {
 		this.width = width ? width : 0;
 		this.height = height ? height : 0;
 		this.visible = true;
+		this.parent = null;
 		this.children = [];
 		this.activeChild = null;
 		this.mouse = {
@@ -34,6 +35,7 @@ const Component = class {
 	addChild(child) {
 		this.children.push(child);
 		this.activeChild = child;
+		child.parent = this;
 		child.setup(this.context);
 		return child;
 	}
@@ -42,6 +44,7 @@ const Component = class {
 			this.activeChild = null;
 		}
 		this.children = this.children.filter(c => (c !== child));
+		child.parent = null;
 		return child;
 	}
 	setup(context) {
@@ -197,10 +200,12 @@ const RootComponent = class extends Component {
 			if (e.which === 2) this.pMouse.mPressed = false;
 			if (e.which === 3) this.pMouse.rPressed = false;
 		});
-		this.canvas.addEventListener("mousewheel", e => {
+		const mousewheel = e => {
 			if (e.ctrlKey) { e.preventDefault(); }
-			this.pMouse.zDelta += e.wheelDelta;
-		});
+			this.pMouse.zDelta += e.wheelDelta ? e.wheelDelta : (-e.detail * 20.0);
+		};
+		this.canvas.addEventListener("mousewheel", mousewheel);
+		this.canvas.addEventListener("DOMMouseScroll", mousewheel);
 		this.canvas.oncontextmenu = () => { return false; };
 		document.addEventListener("dragover", e => { e.preventDefault(); });
 		document.addEventListener("drop", e => {
