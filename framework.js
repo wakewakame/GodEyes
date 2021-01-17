@@ -155,6 +155,7 @@ const Component = class {
 		x -= this.left; y -= this.top;
 		for(let index = this.children.length - 1; index >= 0; index--) {
 			const child = this.children[index];
+			if (!child.isVisible) continue;
 			if (child.isHit(x, y)) {
 				child.drop(files, x, y);
 				return;
