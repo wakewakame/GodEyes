@@ -1,13 +1,11 @@
 /*
 
 Todo
-	- スクロール時にファイルが選択されてしまうバグの修正
+	- 時間経過とともにFPSが落ちる(画面のリサイズで解消するっぽい)バグの修正
 	- Ctrl+Aなどのショートカット処理を追加
-	- デザインをいい感じにする
 	- 拡大時にスクロール位置がずれないようにする
 	- 拡大縮小のバーを表示
 	- 選択、矩形選択の機能を追加
-	- Component(基底クラス)にイベントリスナー機能を追加
 
 */
 
@@ -85,7 +83,7 @@ const PhotoItemComponent = class extends Component {
 		}
 
 		// 選択状態の表示
-		if (this.mouse.lPressed && (!this.mouse.pLPressed)) {
+		if (this.mouse.lPressed && (!this.mouse.pLPressed) && this.isHit(this.parent.mouse.lDragStartX, this.parent.mouse.lDragStartY)) {
 			if (this.keyboard.ctrl) { this.isSelected = !this.isSelected; }
 			else { this.isSelected |= true; }
 		}
