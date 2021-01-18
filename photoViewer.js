@@ -118,29 +118,46 @@ const PhotoViewerComponent = class extends Component {
 			this.events.dispatchEvent(new CustomEvent("open", { detail: e.detail }));
 		}.bind(this);
 		const ScrollBar = class extends Component {
-			constructor(width) { super(0, 0, width, 0); }
-			onSetup() { this.pTop = this.top; this.pMouseY = 0; }
-			draw() { this.left = this.parent.width - this.width; super.draw(); }
+			constructor() { super(0, 0, 17, 0); }
+			onSetup() {
+				this.dragStartY = 0;
+				this.dragStartTop = 0;
+				this.dragStartBottom = 0;
+				this.barTop = 0;
+				this.barHeight = 0;
+			}
+			onUpdate() {
+				this.left = this.parent.width - this.width;
+				this.height = this.parent.height;
+				this.barHeight = this.height * this.height / this.parent.listH;
+				if (this.mouse.lDrag) {
+					if (!this.mouse.pLPressed) {
+						this.dragStartY = this.mouse.y;
+						this.dragStartTop = this.barTop;
+						this.dragStartBottom = this.barTop + this.barHeight;
+					}
+					let barTop = 0;
+					if ((this.dragStartTop <= this.dragStartY) && (this.dragStartY < this.dragStartBottom)) {
+						barTop = this.dragStartTop + this.mouse.y - this.dragStartY;
+					}
+					else {
+						barTop = this.mouse.y - this.barHeight * 0.5;
+					}
+					barTop = Math.max(barTop, 0);
+					barTop = Math.min(barTop, this.height - this.barHeight);
+					this.parent.scroll = this.parent.listH * barTop / this.height;
+				}
+				this.barTop = this.height * this.parent.scroll / this.parent.listH;
+			}
 			onDraw() {
 				if ((this.parent.listH === 0) || (this.parent.listH <= this.parent.height)) return;
 				this.context.fillStyle = "#171717";
-				this.context.fillRect(0, -this.top, this.width, this.parent.height);
+				this.context.fillRect(0, 0, this.width, this.parent.height);
 				this.context.fillStyle = "#4d4d4d";
-				this.context.fillRect(1, 1, this.width - 2, this.height - 2);
-				this.height = this.parent.height * this.parent.height / this.parent.listH;
-				if (this.mouse.lDrag) {
-					if (!this.mouse.pLPressed) { this.pTop = this.top; this.pMouseY = this.mouse.y; }
-					const py = this.pMouseY - (this.top - this.pTop);
-					this.top = this.pTop + this.mouse.y - py;
-					this.top = Math.max(Math.min(this.top, this.parent.height - this.height), 0);
-					this.parent.scroll = this.top * this.parent.listH / this.parent.height;
-				}
-				else {
-					this.top = this.parent.height * this.parent.scroll / this.parent.listH;
-				}
+				this.context.fillRect(1, 1 + this.barTop, this.width - 2, this.barHeight - 2);
 			};
 		};
-		this.scrollbar = this.addChild(new ScrollBar(17));
+		this.scrollbar = this.addChild(new ScrollBar());
 	}
 	addChild(child) {
 		super.addChild(child);
