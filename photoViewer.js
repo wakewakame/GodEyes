@@ -106,7 +106,7 @@ const PhotoViewerComponent = class extends Component {
 		this.listW = 0;
 		this.listH = 0;
 		this.zDelta = 0;
-		this.clip = true;
+		super.clip = true;
 		this.photos = new Array();
 		this.onOpen = function(e) {
 			this.events.dispatchEvent(new CustomEvent("open", { detail: e.detail }));
@@ -171,7 +171,8 @@ const PhotoViewerComponent = class extends Component {
 		}
 
 		// Ctrlが押された状態でのスクロールは拡大縮小
-		if (this.keyboard.ctrl) {
+		// 左クリック中のときは選択状態にあるので拡大縮小はしない
+		if (this.keyboard.ctrl && (!this.mouse.lPressed)) {
 			// アイコンサイズの拡大縮小
 			const zoom = 2.0 ** (this.zDelta / 1200.0);
 			const zoom_ = this.zoom;
