@@ -1,7 +1,6 @@
 /*
 
 Todo
-	- Ctrl+Aなどのショートカット処理を追加
 	- 拡大縮小のバーを表示
 	- 選択、矩形選択の機能を追加
 
@@ -231,19 +230,23 @@ const PhotoViewerComponent = class extends Component {
 		}
 	}
 	shortcut() {
-		// シフトキーを押しながらで複数選択できるようにする
-		if ((!this.keyboard.shift && !this.keyboard.ctrl) && this.mouse.lPressed && (!this.mouse.pLPressed)) {
+		// CtrlもしくはShiftを押していない状態でどこかをクリックすると選択全解除
+		if ((!this.keyboard.ctrl && !this.keyboard.shift) && this.mouse.lPressed && (!this.mouse.pLPressed)) {
 			this.photos.forEach(c => { c.isSelected = false; });
 		}
 
-		/*
+		// Escで選択全解除
+		if (this.keyboard.press.has("Escape")) { this.photos.forEach(c => { c.isSelected = false; }); }
+
 		// Ctrl+Aで全選択
 		if (this.keyboard.ctrl && this.keyboard.press.has("a")) {
 			this.photos.forEach(c => { c.isSelected = true; });
 		}
 
 		// Deleteキーで選択されているものを削除
-		console.log(this.keyboard.press);
-		*/
+		if (this.keyboard.press.has("Delete")) {
+			const selectedPhotos = this.photos.filter(c => c.isSelected);
+			selectedPhotos.forEach(c => { this.removeChild(c); });
+		}
 	}
 };

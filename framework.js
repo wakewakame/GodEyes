@@ -195,9 +195,14 @@ const RootComponent = class extends Component {
 	}
 	setEventListener() {
 		this.canvas.addEventListener("keydown", e => {
-			if (e.key === "Control") this.pKeyboard.ctrl  = true;
-			if (e.key === "Shift")   this.pKeyboard.shift = true;
-			if (e.key === "Alt")     this.pKeyboard.alt   = true;
+			if (e.key === "Control")    { this.pKeyboard.ctrl  = true; return; }
+			if (e.key === "Shift")      { this.pKeyboard.shift = true; return; }
+			if (e.key === "Alt")        { this.pKeyboard.alt   = true; return; }
+			if (e.key === "Delete")     { this.pKeyboard.press.add(e.key); return; }
+			if (e.key === "Escape")     { this.pKeyboard.press.add(e.key); return; }
+			if (e.key === "Backspace")  { this.pKeyboard.press.add(e.key); return; }
+			if (e.ctrlKey)              { this.pKeyboard.press.add(e.key); return; }
+			if (e.altKey)               { this.pKeyboard.press.add(e.key); return; }
 		});
 		this.canvas.addEventListener("keyup", e => {
 			if (e.key === "Control") this.pKeyboard.ctrl  = false;
