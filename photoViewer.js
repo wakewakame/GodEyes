@@ -2,7 +2,6 @@
 
 Todo
 	- 拡大縮小のバーを表示
-	- 選択、矩形選択の機能を追加
 
 */
 
@@ -112,7 +111,12 @@ const PhotoViewerComponent = class extends Component {
 		this.listH = 0;            // リストの縦幅
 		this.zDelta = 0;           // マウスホイール(スムーズなアニメーションになるように計算するため)
 		super.clip = true;         // 範囲外に描画されるものを隠す
-		this.selectedArea = { isEnable: false, left: 0, top: 0, right: 0, bottom: 0, pivotX: 0, pivotY: 0 };
+		this.selectedArea = {
+			isEnable: false,
+			left: 0, top: 0, right: 0, bottom: 0,
+			pivotX: 0, pivotY: 0, pivotScroll: 0,
+			items: new Array()
+		};
 		this.photos = new Array();  // リストアイテムの配列
 		this.onOpen = function(e) {
 			this.events.dispatchEvent(new CustomEvent("open", { detail: e.detail }));
@@ -220,14 +224,30 @@ const PhotoViewerComponent = class extends Component {
 			if (!this.mouse.pLPressed) {
 				this.selectedArea.pivotX = this.mouse.x;
 				this.selectedArea.pivotY = this.mouse.y;
+				this.selectedArea.pivotScroll = this.scroll;
+				this.selectedArea.items = new Array();
 			}
+			this.selectedArea.pivotY -= this.scroll - this.selectedArea.pivotScroll;
+			this.selectedArea.pivotScroll = this.scroll;
 			this.selectedArea.left   = Math.min(this.mouse.x, this.selectedArea.pivotX);
 			this.selectedArea.top    = Math.min(this.mouse.y, this.selectedArea.pivotY);
 			this.selectedArea.right  = Math.max(this.mouse.x, this.selectedArea.pivotX);
 			this.selectedArea.bottom = Math.max(this.mouse.y, this.selectedArea.pivotY);
 			this.selectedArea.isEnable = true;
+			const selected = this.photos.map(c => c.isSelected);
+			this.selectedArea.items.forEach(c => { c.isSelected = false; });
+			const items = new Array();
+			this.photos.forEach(c => {
+				if (
+					(this.selectedArea.left < c.left + c.width) && (c.left <= this.selectedArea.right) &&
+					(this.selectedArea.top < c.top + c.height) && (c.top <= this.selectedArea.bottom)
+				) {
+					items.push(c);
+					c.isSelected = true;
+				}
+			});
+			this.selectedArea.items = items;
 		}
-
 
 		// ショートカットの処理
 		this.shortcut();
