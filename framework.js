@@ -16,9 +16,7 @@ const Component = class {
 		this.mouse = {
 			x: 0, y: 0,
 			px: 0, py: 0,
-			lDragStartX: 0, lDragStartY: 0,
-			rDragStartX: 0, rDragStartY: 0,
-			mDragStartX: 0, mDragStartY: 0,
+			lDrag: false, rDrag: false, mDrag: false,
 			lPressed: false, pLPressed: false,
 			rPressed: false, pRPressed: false,
 			mPressed: false, pMPressed: false,
@@ -57,6 +55,7 @@ const Component = class {
 	}
 	draw() {
 		if (!this.isVisible) return;
+		this.onUpdate();
 		this.context.save();
 		try {
 			this.context.beginPath();
@@ -78,49 +77,54 @@ const Component = class {
 		this.height = height;
 		this.onResize();
 	}
-	setMouse(x, y, lPressed, rPressed, mPressed, zDelta, lDoubleClick) {
-		this.mouse.px = this.mouse.x; this.mouse.py = this.mouse.y;
-		this.mouse.x = x - this.left; this.mouse.y = y - this.top;
-		this.mouse.pLPressed = this.mouse.lPressed; this.mouse.pRPressed = this.mouse.rPressed; this.mouse.pMPressed = this.mouse.mPressed;
-		this.mouse.lPressed = lPressed; this.mouse.rPressed = rPressed; this.mouse.mPressed = mPressed;
+	setMouse(mouse, lDrag, rDrag, mDrag) {
+		this.mouse.x = mouse.x - this.left; this.mouse.y = mouse.y - this.top;
+		this.mouse.px = mouse.px - this.left; this.mouse.py = mouse.py - this.top;
+		this.mouse.pLPressed = mouse.pLPressed;
+		this.mouse.pRPressed = mouse.pRPressed;
+		this.mouse.pMPressed = mouse.pMPressed;
+		this.mouse.lPressed = mouse.lPressed;
+		this.mouse.rPressed = mouse.rPressed;
+		this.mouse.mPressed = mouse.mPressed;
+		this.mouse.lDrag = lDrag;
+		this.mouse.rDrag = rDrag;
+		this.mouse.mDrag = mDrag;
+		this.mouse.zDelta = mouse.zDelta;
+		this.mouse.lDoubleClick = mouse.lDoubleClick;
 		const lClick = this.mouse.lPressed && (!this.mouse.pLPressed);
 		const rClick = this.mouse.rPressed && (!this.mouse.pRPressed);
 		const mClick = this.mouse.mPressed && (!this.mouse.pMPressed);
-		if (lClick) { this.mouse.lDragStartX = this.mouse.x; this.mouse.lDragStartY = this.mouse.y; }
-		if (rClick) { this.mouse.rDragStartX = this.mouse.x; this.mouse.rDragStartY = this.mouse.y; }
-		if (mClick) { this.mouse.mDragStartX = this.mouse.x; this.mouse.mDragStartY = this.mouse.y; }
-		this.mouse.zDelta = zDelta;
-		this.mouse.lDoubleClick = lDoubleClick;
+		const uLClick = (!this.mouse.lPressed) && this.mouse.pLPressed;
+		const uRClick = (!this.mouse.rPressed) && this.mouse.pRPressed;
+		const uMClick = (!this.mouse.mPressed) && this.mouse.pMPressed;
 
 		let activateChildIndex = this.children.length - 1;
 		if (lClick) { this.activeChild = null; }
 
-		let hitFrag = false, lDragFrag = false, rDragFrag = false, mDragFrag = false;
+		let hitFrag = false;
 		for(let index = this.children.length - 1; index >= 0; index--) {
 			const child = this.children[index];
 			if (!child.isVisible) continue;
+			if (child.mouse.lDrag || child.mouse.rDrag || child.mouse.mDrag) {
+				child.setMouse(
+					this.mouse,
+					(child.mouse.lDrag || lClick) && (!uLClick),
+					(child.mouse.rDrag || rClick) && (!uRClick),
+					(child.mouse.mDrag || mClick) && (!uMClick)
+				);
+				continue;
+			}
 			if ((!hitFrag) && child.isHit(this.mouse.x, this.mouse.y)) {
-				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
+				child.setMouse(
+					this.mouse,
+					child.mouse.lDrag || lClick,
+					child.mouse.rDrag || rClick,
+					child.mouse.mDrag || mClick
+				);
 				hitFrag = true;
 				if (lClick) { activateChildIndex = index; this.activeChild = child; }
 				continue;
 			};
-			if ((!lDragFrag) && lPressed && child.mouse.lPressed) {
-				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
-				lDragFrag = true;
-				continue;
-			};
-			if ((!rDragFrag) && rPressed && child.mouse.rPressed) {
-				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
-				rDragFrag = true;
-				continue;
-			};
-			if ((!mDragFrag) && mPressed && child.mouse.mPressed) {
-				child.setMouse(this.mouse.x, this.mouse.y, lPressed, rPressed, mPressed, zDelta, lDoubleClick);
-				mDragFrag = true;
-				continue;
-			};
-			child.setMouse(child.mouse.x + child.left, child.mouse.y + child.top, false, false, false, 0, false);
 		}
 
 		for(let i = activateChildIndex; i < this.children.length - 1; i++) {
@@ -160,7 +164,6 @@ const Component = class {
 	}
 	toInvisible() {
 		this.isVisible = false;
-		this.setMouse(this.mouse.x, this.mouse.y, false, false, false, 0, false);
 		this.setKey();
 	}
 	isHit(x, y) {
@@ -182,6 +185,7 @@ const Component = class {
 		this.onDrop(files);
 	}
 	onSetup() {}
+	onUpdate() {}
 	onDraw() {}
 	onAfterDraw() {}
 	onResize() {}
@@ -193,7 +197,15 @@ const RootComponent = class extends Component {
 		super(0, 0, canvas.width, canvas.height);
 		this.canvas = canvas;
 		const context = this.canvas.getContext("2d");
-		this.pMouse = { x: 0, y: 0, lPressed: false, rPressed: false, mPressed: false, zDelta: 0, lDoubleClick: false };
+		this.pMouse = {
+			x: 0, y: 0,
+			px: 0, py: 0,
+			lPressed: false, pLPressed: false,
+			rPressed: false, pRPressed: false,
+			mPressed: false, pMPressed: false,
+			zDelta: 0,
+			lDoubleClick: false
+		};
 		this.pKeyboard = {
 			ctrl: false,
 			shift: false,
@@ -209,10 +221,13 @@ const RootComponent = class extends Component {
 	}
 	draw() {
 		super.setMouse(
-			this.pMouse.x, this.pMouse.y,
-			this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed,
-			this.pMouse.zDelta, this.pMouse.lDoubleClick
+			this.pMouse, this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed
 		);
+		this.pMouse.px = this.pMouse.x;
+		this.pMouse.py = this.pMouse.y;
+		this.pMouse.pLPressed = this.pMouse.lPressed;
+		this.pMouse.pRPressed = this.pMouse.rPressed;
+		this.pMouse.pMPressed = this.pMouse.mPressed;
 		this.pMouse.zDelta = 0;
 		this.pMouse.lDoubleClick = false;
 		super.setKey(this.pKeyboard);
