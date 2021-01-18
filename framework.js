@@ -29,6 +29,10 @@ const Component = class {
 			ctrl: false,
 			shift: false,
 			alt: false,
+			left: false,
+			right: false,
+			up: false,
+			down: false,
 			press: new Set()
 		};
 	}
@@ -125,13 +129,30 @@ const Component = class {
 			this.children[i + 1] = tmp;
 		}
 	}
-	setKey(ctrl, shift, alt, press) {
-		this.keyboard.ctrl  = ctrl;
-		this.keyboard.shift = shift;
-		this.keyboard.alt   = alt;
-		this.keyboard.press = new Set(press);
+	setKey(keyboard) {
+		if (keyboard === undefined) {
+			this.keyboard = {
+				ctrl: false,
+				shift: false,
+				alt: false,
+				left: false,
+				right: false,
+				up: false,
+				down: false,
+				press: new Set()
+			};
+			return;
+		}
+		this.keyboard.ctrl  = keyboard.ctrl;
+		this.keyboard.shift = keyboard.shift;
+		this.keyboard.alt   = keyboard.alt;
+		this.keyboard.left  = keyboard.left;
+		this.keyboard.right = keyboard.right;
+		this.keyboard.up    = keyboard.up;
+		this.keyboard.down  = keyboard.down;
+		this.keyboard.press = new Set(keyboard.press);
 		if (this.activeChild !== null && this.activeChild.isVisible) {
-			this.activeChild.setKey(ctrl, shift, alt, press);
+			this.activeChild.setKey(this.keyboard);
 		}
 	}
 	toVisible() {
@@ -140,7 +161,7 @@ const Component = class {
 	toInvisible() {
 		this.isVisible = false;
 		this.setMouse(this.mouse.x, this.mouse.y, false, false, false, 0, false);
-		this.setKey(false, false, false, new Set());
+		this.setKey();
 	}
 	isHit(x, y) {
 		return (
@@ -173,7 +194,16 @@ const RootComponent = class extends Component {
 		this.canvas = canvas;
 		const context = this.canvas.getContext("2d");
 		this.pMouse = { x: 0, y: 0, lPressed: false, rPressed: false, mPressed: false, zDelta: 0, lDoubleClick: false };
-		this.pKeyboard = { ctrl: false, shift: false, alt: false, press: new Set() };
+		this.pKeyboard = {
+			ctrl: false,
+			shift: false,
+			alt: false,
+			left: false,
+			right: false,
+			up: false,
+			down: false,
+			press: new Set()
+		};
 		this.setEventListener();
 		this.setup(context);
 	}
@@ -185,7 +215,7 @@ const RootComponent = class extends Component {
 		);
 		this.pMouse.zDelta = 0;
 		this.pMouse.lDoubleClick = false;
-		super.setKey(this.pKeyboard.ctrl, this.pKeyboard.shift, this.pKeyboard.alt, this.pKeyboard.press);
+		super.setKey(this.pKeyboard);
 		this.pKeyboard.press.clear();
 		super.draw();
 	}
@@ -197,19 +227,27 @@ const RootComponent = class extends Component {
 	}
 	setEventListener() {
 		this.canvas.addEventListener("keydown", e => {
-			if (e.key === "Control")    { this.pKeyboard.ctrl  = true; return; }
-			if (e.key === "Shift")      { this.pKeyboard.shift = true; return; }
-			if (e.key === "Alt")        { this.pKeyboard.alt   = true; return; }
-			if (e.key === "Delete")     { this.pKeyboard.press.add(e.key); return; }
-			if (e.key === "Escape")     { this.pKeyboard.press.add(e.key); return; }
-			if (e.key === "Backspace")  { this.pKeyboard.press.add(e.key); return; }
-			if (e.ctrlKey)              { this.pKeyboard.press.add(e.key); return; }
-			if (e.altKey)               { this.pKeyboard.press.add(e.key); return; }
+			if (e.key === "Control")      { this.pKeyboard.ctrl  = true; return; }
+			if (e.key === "Shift")        { this.pKeyboard.shift = true; return; }
+			if (e.key === "Alt")          { this.pKeyboard.alt   = true; return; }
+			if (e.key === "ArrowLeft")    { this.pKeyboard.left  = true; return; }
+			if (e.key === "ArrowRight")   { this.pKeyboard.right = true; return; }
+			if (e.key === "ArrowUp")      { this.pKeyboard.up    = true; return; }
+			if (e.key === "ArrowDown")    { this.pKeyboard.down  = true; return; }
+			if (e.key === "Delete")       { this.pKeyboard.press.add(e.key); return; }
+			if (e.key === "Escape")       { this.pKeyboard.press.add(e.key); return; }
+			if (e.key === "Backspace")    { this.pKeyboard.press.add(e.key); return; }
+			if (e.ctrlKey)                { this.pKeyboard.press.add(e.key); return; }
+			if (e.altKey)                 { this.pKeyboard.press.add(e.key); return; }
 		});
 		this.canvas.addEventListener("keyup", e => {
-			if (e.key === "Control") this.pKeyboard.ctrl  = false;
-			if (e.key === "Shift")   this.pKeyboard.shift = false;
-			if (e.key === "Alt")     this.pKeyboard.alt   = false;
+			if (e.key === "Control")     this.pKeyboard.ctrl  = false;
+			if (e.key === "Shift")       this.pKeyboard.shift = false;
+			if (e.key === "Alt")         this.pKeyboard.alt   = false;
+			if (e.key === "ArrowLeft")   this.pKeyboard.left  = false;
+			if (e.key === "ArrowRight")  this.pKeyboard.right = false;
+			if (e.key === "ArrowUp")     this.pKeyboard.up    = false;
+			if (e.key === "ArrowDown")   this.pKeyboard.down  = false;
 		});
 		this.canvas.addEventListener("keypress", e => {
 			this.pKeyboard.press.add(e.key);

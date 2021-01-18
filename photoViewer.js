@@ -265,5 +265,9 @@ const PhotoViewerComponent = class extends Component {
 			const selectedPhotos = this.photos.filter(c => c.isSelected);
 			selectedPhotos.forEach(c => { this.removeChild(c); });
 		}
+
+		// 方向キーでスクロール
+		this.zDelta += this.keyboard.up   ? 30.0 : 0.0;
+		this.zDelta -= this.keyboard.down ? 30.0 : 0.0;
 	}
 };
