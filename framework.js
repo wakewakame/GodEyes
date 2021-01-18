@@ -115,7 +115,7 @@ const Component = class {
 				mDragFrag = true;
 				continue;
 			};
-			child.setMouse(child.mouse.x, child.mouse.y, false, false, false, 0, false);
+			child.setMouse(child.mouse.x + child.left, child.mouse.y + child.top, false, false, false, 0, false);
 		}
 
 		for(let i = activateChildIndex; i < this.children.length - 1; i++) {
