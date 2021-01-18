@@ -63,6 +63,7 @@ const Component = class {
 			}
 			this.onDraw();
 			this.children.forEach(child => { child.draw(); });
+			this.onAfterDraw();
 		}
 		finally {
 			this.context.restore();
@@ -161,6 +162,7 @@ const Component = class {
 	}
 	onSetup() {}
 	onDraw() {}
+	onAfterDraw() {}
 	onResize() {}
 	onDrop(files) {}
 };

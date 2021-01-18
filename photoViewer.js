@@ -120,7 +120,7 @@ const PhotoViewerComponent = class extends Component {
 				this.context.fillStyle = "#171717";
 				this.context.fillRect(0, -this.top, this.width, this.parent.height);
 				this.context.fillStyle = "#4d4d4d";
-				this.context.fillRect(0, 0, this.width, this.height);
+				this.context.fillRect(1, 1, this.width - 2, this.height - 2);
 				this.height = this.parent.height * this.parent.height / this.parent.listH;
 				if (this.mouse.lPressed) {
 					if (!this.parent.mouse.pLPressed) { this.pTop = this.top; }
@@ -134,7 +134,7 @@ const PhotoViewerComponent = class extends Component {
 				}
 			};
 		};
-		this.scrollbar = this.addChild(new ScrollBar(16));
+		this.scrollbar = this.addChild(new ScrollBar(17));
 	}
 	addChild(child) {
 		super.addChild(child);
@@ -214,6 +214,23 @@ const PhotoViewerComponent = class extends Component {
 			component.left += 4; component.top += 4;
 			component.width -= 8; component.height -= 8;
 		});
+	}
+	onAfterDraw() {
+		if (
+			this.mouse.lPressed &&
+			(0 <= this.mouse.lDragStartX) && (this.mouse.lDragStartX < this.width - this.scrollbar.width) &&
+			(0 <= this.mouse.lDragStartY) && (this.mouse.lDragStartY < this.height)
+		) {
+			const left   = Math.min(this.mouse.x, this.mouse.lDragStartX);
+			const top    = Math.min(this.mouse.y, this.mouse.lDragStartY);
+			const right  = Math.max(this.mouse.x, this.mouse.lDragStartX);
+			const bottom = Math.max(this.mouse.y, this.mouse.lDragStartY);
+			this.context.strokeStyle = "#0078d7ff";
+			this.context.fillStyle = "#0065cb55";
+			this.context.lineWidth = 1;
+			this.context.fillRect(left + 1.0, top + 1.0, right - left - 2.0, bottom - top - 2.0);
+			this.context.strokeRect(left + 0.5, top + 0.5, right - left - 1.0, bottom - top - 1.0);
+		}
 	}
 	drop(files, x, y) { this.onDrop(files); }
 	onDrop(files) {
