@@ -21,6 +21,8 @@ const PhotoItemComponent = class extends Component {
 			resizeCanvas.width = thumbnail.width * afterLongSide / beforeLongSide;
 			resizeCanvas.height = thumbnail.height * afterLongSide / beforeLongSide;
 			const context = resizeCanvas.getContext("2d");
+			context.fillStyle = "#202020";
+			context.fillRect(0, 0, resizeCanvas.width, resizeCanvas.height);
 			context.drawImage(thumbnail, 0, 0, resizeCanvas.width, resizeCanvas.height);
 			const dataURL = resizeCanvas.toDataURL("image/jpeg");
 			thumbnail = await (new Promise((resolve, reject) => {
