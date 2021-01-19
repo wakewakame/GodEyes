@@ -1,10 +1,3 @@
-/*
-
-Todo
-	- 拡大縮小のバーを表示
-
-*/
-
 'use strict';
 
 const PhotoItemComponent = class extends Component {
@@ -163,34 +156,6 @@ const PhotoViewerComponent = class extends Component {
 			};
 		};
 		this.scrollbar = this.addChild(new ScrollBar());
-		const ZoomSlider = class extends Slider {
-			constructor() { super(0, 0, 300, true, "#fff"); }
-			onSetup() { super.onSetup(); super.isFront = true; }
-			onUpdate() {
-				this.left = (this.parent.width - this.width) * 0.5;
-				this.pTop = this.parent.height - this.height - 50;
-				if (this.qTop === undefined) { this.top = (this.qTop = this.pTop) + 100; }
-				if ((!this.parent.mouse.over) || ((!this.mouse.lDrag) && this.parent.mouse.y < this.pTop - 22)) this.qTop = this.pTop + 100;
-				else this.qTop = this.pTop;
-				this.top += (this.qTop - this.top) * 0.3;
-			}
-			onDraw() {
-				this.context.fillStyle = "#171717";
-				this.context.beginPath();
-				this.context.arc(this.height * 0.5 - 60, this.height * 0.5, 26, Math.PI * 0.5, -Math.PI * 0.5);
-				this.context.arc(this.width - this.height * 0.5 + 60, this.height * 0.5, 26, -Math.PI * 0.5, Math.PI * 0.5);
-				this.context.fill();
-				super.onDraw();
-				this.context.fillStyle = "#fff";
-				this.context.font = "20px sans-serif";
-				this.context.textBaseline = "middle";
-				this.context.textAlign = "right";
-				this.context.fillText("-", -19.5, this.height * 0.5);
-				this.context.textAlign = "left";
-				this.context.fillText("+", this.width + 20.5, this.height * 0.5);
-			}
-		};
-		this.zoombar = this.addChild(new ZoomSlider());
 	}
 	addChild(child) {
 		super.addChild(child);
@@ -215,15 +180,8 @@ const PhotoViewerComponent = class extends Component {
 
 		// Ctrlが押された状態でのスクロールは拡大縮小
 		// 選択状態のときは拡大縮小はしない
-		if (this.zoombar.init === undefined) {
-			this.zoombar.picker.value.x = (this.zoom - 0.4)
-				/ (Math.min(this.width / this.itemW, this.height / this.itemH) - 0.4);
-			this.zoombar.init = true;
-		}
-		if ((this.keyboard.ctrl && (!this.mouse.lDrag)) || (this.zoombar.picker.mouse.lDrag)) {
+		if (this.keyboard.ctrl && (!this.mouse.lDrag)) {
 			// アイコンサイズの拡大縮小
-			this.zoom = this.zoombar.picker.value.x
-				* (Math.min(this.width / this.itemW, this.height / this.itemH) - 0.4) + 0.4;
 			const zoom = 2.0 ** (this.zDelta / 1200.0);
 			const zoom_ = this.zoom;
 			this.zoom *= zoom;
@@ -231,8 +189,6 @@ const PhotoViewerComponent = class extends Component {
 			this.zoom = Math.max(this.zoom, 0.4);
 			this.itemW_ = this.itemW * this.zoom;
 			this.itemH_ = this.itemH * this.zoom;
-			this.zoombar.picker.value.x = (this.zoom - 0.4)
-				/ (Math.min(this.width / this.itemW, this.height / this.itemH) - 0.4);
 
 			// アイコンサイズの変更に伴い列数の再計算
 			this.listX = Math.floor((this.width - this.scrollbar.width) / this.itemW_);
@@ -261,7 +217,7 @@ const PhotoViewerComponent = class extends Component {
 
 		// ドラッグで選択
 		this.selectedArea.isEnable = false;
-		if (this.mouse.lDrag && (!this.scrollbar.mouse.lDrag) && (!this.zoombar.mouse.lDrag)) {
+		if (this.mouse.lDrag && (!this.scrollbar.mouse.lDrag)) {
 			if (!this.mouse.pLPressed) {
 				this.selectedArea.pivotX = this.mouse.x;
 				this.selectedArea.pivotY = this.mouse.y;
