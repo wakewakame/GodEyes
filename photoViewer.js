@@ -53,7 +53,6 @@ const PhotoItemComponent = class extends Component {
 		if (this.mouse.lDoubleClick) {
 			this.events.dispatchEvent(new CustomEvent("open", { detail: this }));
 		}
-
 	}
 	onDraw() {
 		// 描画範囲外にいる要素は除外

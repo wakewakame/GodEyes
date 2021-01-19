@@ -13,26 +13,8 @@ const Component = class {
 		this.children = [];
 		this.activeChild = null;
 		this.events = new EventTarget();
-		this.mouse = {
-			x: 0, y: 0,
-			px: 0, py: 0,
-			lDrag: false, rDrag: false, mDrag: false,
-			lPressed: false, pLPressed: false,
-			rPressed: false, pRPressed: false,
-			mPressed: false, pMPressed: false,
-			zDelta: 0,
-			lDoubleClick: false
-		};
-		this.keyboard = {
-			ctrl: false,
-			shift: false,
-			alt: false,
-			left: false,
-			right: false,
-			up: false,
-			down: false,
-			press: new Set()
-		};
+		this.setMouse();
+		this.setKey();
 	}
 	addChild(child) {
 		this.children.push(child);
@@ -78,6 +60,20 @@ const Component = class {
 		this.onResize();
 	}
 	setMouse(mouse, lDrag, rDrag, mDrag) {
+		if (mouse === undefined) {
+			this.mouse = {
+				x: 0, y: 0,
+				px: 0, py: 0,
+				lDrag: false, rDrag: false, mDrag: false,
+				lPressed: false, pLPressed: false,
+				rPressed: false, pRPressed: false,
+				mPressed: false, pMPressed: false,
+				zDelta: 0,
+				lDoubleClick: false
+			};
+			this.children.forEach(c => { c.setMouse(); });
+			return;
+		}
 		this.mouse.x = mouse.x - this.left; this.mouse.y = mouse.y - this.top;
 		this.mouse.px = mouse.px - this.left; this.mouse.py = mouse.py - this.top;
 		this.mouse.pLPressed = mouse.pLPressed;
@@ -101,7 +97,7 @@ const Component = class {
 		let activateChildIndex = this.children.length - 1;
 		if (lClick) { this.activeChild = null; }
 
-		let hitFrag = false;
+		let hitFlag = false;
 		for(let index = this.children.length - 1; index >= 0; index--) {
 			const child = this.children[index];
 			if (!child.isVisible) continue;
@@ -114,17 +110,18 @@ const Component = class {
 				);
 				continue;
 			}
-			if ((!hitFrag) && child.isHit(this.mouse.x, this.mouse.y)) {
+			if ((!hitFlag) && child.isHit(this.mouse.x, this.mouse.y)) {
 				child.setMouse(
 					this.mouse,
 					child.mouse.lDrag || lClick,
 					child.mouse.rDrag || rClick,
 					child.mouse.mDrag || mClick
 				);
-				hitFrag = true;
+				hitFlag = true;
 				if (lClick) { activateChildIndex = index; this.activeChild = child; }
 				continue;
 			};
+			child.setMouse();
 		}
 
 		for(let i = activateChildIndex; i < this.children.length - 1; i++) {
@@ -150,6 +147,14 @@ const Component = class {
 		this.keyboard.ctrl  = keyboard.ctrl;
 		this.keyboard.shift = keyboard.shift;
 		this.keyboard.alt   = keyboard.alt;
+		this.keyboard.left  = false;
+		this.keyboard.right = false;
+		this.keyboard.up    = false;
+		this.keyboard.down  = false;
+		this.keyboard.press = new Set();
+		this.children.forEach(c => {
+			if (c.isVisible && (c !== this.activeChild)) c.setKey(this.keyboard);
+		});
 		this.keyboard.left  = keyboard.left;
 		this.keyboard.right = keyboard.right;
 		this.keyboard.up    = keyboard.up;
@@ -158,13 +163,6 @@ const Component = class {
 		if (this.activeChild !== null && this.activeChild.isVisible) {
 			this.activeChild.setKey(this.keyboard);
 		}
-	}
-	toVisible() {
-		this.isVisible = true;
-	}
-	toInvisible() {
-		this.isVisible = false;
-		this.setKey();
 	}
 	isHit(x, y) {
 		return (
