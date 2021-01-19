@@ -26,6 +26,7 @@ const Test = class extends Component {
 		this.context.fillStyle = this.color;
 		this.context.fillRect(0, 0, this.width, this.height);
 	}
+	isHit(x, y) { return super.isHit(x, y) || this.children.some(c => c.isHit(x - this.left, y - this.top)) }
 };
 
 const MainComponent = class extends Component {
@@ -34,7 +35,7 @@ const MainComponent = class extends Component {
 			.addChild(new Test("#F00", 200, 100, 500, 500))
 			.addChild(new Test("#00F", 30, 30, 300, 200));
 		this
-			.addChild(new Test("#0F0", 200, 100, 500, 500))
+			.addChild(new Test("#0F0", 230, 130, 500, 500))
 			.addChild(new Test("#00F", 30, 30, 300, 200));
 	}
 	onDraw() {

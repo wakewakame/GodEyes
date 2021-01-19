@@ -7,7 +7,7 @@ const ButtonComponent = class extends Component {
 		this.pLDrag = false;
 	}
 	onUpdate() {
-		if (this.pLDrag && (!this.mouse.lDrag) && this.isHit(this.parent.mouse.x, this.parent.mouse.y)) {
+		if (this.pLDrag && (!this.mouse.lDrag) && this.mouse.over) {
 			this.events.dispatchEvent(new CustomEvent("click"));
 		}
 		this.pLDrag = this.mouse.lDrag;

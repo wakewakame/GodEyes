@@ -8,6 +8,7 @@ const Component = class {
 		this.width = width ? width : 0;
 		this.height = height ? height : 0;
 		this.isVisible = true;
+		this.isFront = false;
 		this.clip = false;
 		this.parent = null;
 		this.children = [];
@@ -21,7 +22,8 @@ const Component = class {
 			rPressed: false, pRPressed: false,
 			mPressed: false, pMPressed: false,
 			zDelta: 0,
-			lDoubleClick: false
+			lDoubleClick: false,
+			over: false
 		};
 		this.keyboard = {
 			ctrl: false,
@@ -55,6 +57,16 @@ const Component = class {
 	}
 	draw() {
 		if (!this.isVisible) return;
+
+		this.children.filter(c => c.isFront).forEach(c => {
+			const index = this.children.findIndex(c_ => (c_ === c));
+			for(let i = index; i < this.children.length - 1; i++) {
+				const tmp = this.children[i];
+				this.children[i] = this.children[i + 1];
+				this.children[i + 1] = tmp;
+			}
+		});
+
 		this.onUpdate();
 		this.context.save();
 		try {
@@ -76,6 +88,7 @@ const Component = class {
 		this.mouse.mPressed = false; this.mouse.pMPressed = false;
 		this.mouse.zDelta = 0;
 		this.mouse.lDoubleClick = false;
+		this.mouse.over = false;
 	}
 	resize(width, height) {
 		this.width = width;
@@ -96,6 +109,10 @@ const Component = class {
 		this.mouse.mDrag = mDrag;
 		this.mouse.zDelta = mouse.zDelta;
 		this.mouse.lDoubleClick = mouse.lDoubleClick;
+		this.mouse.over = (
+			(0 <= this.mouse.x) && (this.mouse.x < this.width) &&
+			(0 <= this.mouse.y) && (this.mouse.y < this.height)
+		);
 		const lClick = this.mouse.lPressed && (!this.mouse.pLPressed);
 		const rClick = this.mouse.rPressed && (!this.mouse.pRPressed);
 		const mClick = this.mouse.mPressed && (!this.mouse.pMPressed);
@@ -117,7 +134,7 @@ const Component = class {
 					(child.mouse.rDrag || rClick) && (!uRClick),
 					(child.mouse.mDrag || mClick) && (!uMClick)
 				);
-				continue;
+				break;
 			}
 			if ((!hitFlag) && child.isHit(this.mouse.x, this.mouse.y)) {
 				child.setMouse(
@@ -128,7 +145,7 @@ const Component = class {
 				);
 				hitFlag = true;
 				if (lClick) { activateChildIndex = index; this.activeChild = child; }
-				continue;
+				break;
 			};
 		}
 
