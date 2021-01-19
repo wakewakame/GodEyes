@@ -13,8 +13,26 @@ const Component = class {
 		this.children = [];
 		this.activeChild = null;
 		this.events = new EventTarget();
-		this.setMouse();
-		this.setKey();
+		this.mouse = {
+			x: 0, y: 0,
+			px: 0, py: 0,
+			lDrag: false, rDrag: false, mDrag: false,
+			lPressed: false, pLPressed: false,
+			rPressed: false, pRPressed: false,
+			mPressed: false, pMPressed: false,
+			zDelta: 0,
+			lDoubleClick: false
+		};
+		this.keyboard = {
+			ctrl: false,
+			shift: false,
+			alt: false,
+			left: false,
+			right: false,
+			up: false,
+			down: false,
+			press: new Set()
+		};
 	}
 	addChild(child) {
 		this.children.push(child);
@@ -53,6 +71,11 @@ const Component = class {
 		finally {
 			this.context.restore();
 		}
+		this.mouse.lPressed = false; this.mouse.pLPressed = false;
+		this.mouse.rPressed = false; this.mouse.pRPressed = false;
+		this.mouse.mPressed = false; this.mouse.pMPressed = false;
+		this.mouse.zDelta = 0;
+		this.mouse.lDoubleClick = false;
 	}
 	resize(width, height) {
 		this.width = width;
@@ -60,20 +83,6 @@ const Component = class {
 		this.onResize();
 	}
 	setMouse(mouse, lDrag, rDrag, mDrag) {
-		if (mouse === undefined) {
-			this.mouse = {
-				x: 0, y: 0,
-				px: 0, py: 0,
-				lDrag: false, rDrag: false, mDrag: false,
-				lPressed: false, pLPressed: false,
-				rPressed: false, pRPressed: false,
-				mPressed: false, pMPressed: false,
-				zDelta: 0,
-				lDoubleClick: false
-			};
-			this.children.forEach(c => { c.setMouse(); });
-			return;
-		}
 		this.mouse.x = mouse.x - this.left; this.mouse.y = mouse.y - this.top;
 		this.mouse.px = mouse.px - this.left; this.mouse.py = mouse.py - this.top;
 		this.mouse.pLPressed = mouse.pLPressed;
@@ -121,7 +130,6 @@ const Component = class {
 				if (lClick) { activateChildIndex = index; this.activeChild = child; }
 				continue;
 			};
-			child.setMouse();
 		}
 
 		for(let i = activateChildIndex; i < this.children.length - 1; i++) {
@@ -131,19 +139,6 @@ const Component = class {
 		}
 	}
 	setKey(keyboard) {
-		if (keyboard === undefined) {
-			this.keyboard = {
-				ctrl: false,
-				shift: false,
-				alt: false,
-				left: false,
-				right: false,
-				up: false,
-				down: false,
-				press: new Set()
-			};
-			return;
-		}
 		this.keyboard.ctrl  = keyboard.ctrl;
 		this.keyboard.shift = keyboard.shift;
 		this.keyboard.alt   = keyboard.alt;
@@ -221,6 +216,8 @@ const RootComponent = class extends Component {
 		super.setMouse(
 			this.pMouse, this.pMouse.lPressed, this.pMouse.rPressed, this.pMouse.mPressed
 		);
+		super.setKey(this.pKeyboard);
+		super.draw();
 		this.pMouse.px = this.pMouse.x;
 		this.pMouse.py = this.pMouse.y;
 		this.pMouse.pLPressed = this.pMouse.lPressed;
@@ -228,9 +225,7 @@ const RootComponent = class extends Component {
 		this.pMouse.pMPressed = this.pMouse.mPressed;
 		this.pMouse.zDelta = 0;
 		this.pMouse.lDoubleClick = false;
-		super.setKey(this.pKeyboard);
 		this.pKeyboard.press.clear();
-		super.draw();
 	}
 	resize(width, height) {
 		this.canvas.width = width;

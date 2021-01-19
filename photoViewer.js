@@ -48,6 +48,18 @@ const PhotoItemComponent = class extends Component {
 		this.thumbnail = thumbnail;
 		this.isSelected = false;
 	}
+	draw() {
+		// 描画範囲外にいる要素は除外
+		if (
+			(this.left + this.width < 0) ||
+			(this.top + this.height < 0) ||
+			(this.parent.width <= this.left) ||
+			(this.parent.height <= this.top)
+		) {
+			return;
+		}
+		super.draw();
+	}
 	onUpdate() {
 		// ダブルクリック時にイベントリスナーを発火
 		if (this.mouse.lDoubleClick) {
@@ -55,12 +67,6 @@ const PhotoItemComponent = class extends Component {
 		}
 	}
 	onDraw() {
-		// 描画範囲外にいる要素は除外
-		if (this.left + this.width < 0) return;
-		if (this.top + this.height < 0) return;
-		if (this.parent.width <= this.left) return;
-		if (this.parent.height <= this.top) return;
-
 		// 表示する画像が一定サイズ以下であれば縮小版の画像を表示する(処理速度向上のため)
 		const img =
 			(this.width > this.thumbnail.width * 1.5 && this.height > this.thumbnail.height * 1.5)
@@ -83,10 +89,6 @@ const PhotoItemComponent = class extends Component {
 		}
 
 		// 選択状態の表示
-		if (this.mouse.lPressed && (!this.mouse.pLPressed)) {
-			if (this.keyboard.ctrl) { this.isSelected = !this.isSelected; }
-			else { this.isSelected |= true; }
-		}
 		if (this.isSelected) {
 			this.context.fillStyle = "#777777";
 			this.context.fillRect(0, 0, this.width, this.height);
@@ -217,6 +219,9 @@ const PhotoViewerComponent = class extends Component {
 		this.scroll = Math.min(this.scroll, Math.ceil(this.photos.length / this.listX) * this.itemH_ - this.height);
 		this.scroll = Math.max(this.scroll, 0);
 
+		// ショートカットの処理
+		this.shortcut();
+
 		// ドラッグで選択
 		this.selectedArea.isEnable = false;
 		if (this.mouse.lDrag && (!this.scrollbar.mouse.lDrag)) {
@@ -233,8 +238,7 @@ const PhotoViewerComponent = class extends Component {
 			this.selectedArea.right  = Math.max(this.mouse.x, this.selectedArea.pivotX);
 			this.selectedArea.bottom = Math.max(this.mouse.y, this.selectedArea.pivotY);
 			this.selectedArea.isEnable = true;
-			const selected = this.photos.map(c => c.isSelected);
-			this.selectedArea.items.forEach(c => { c.isSelected = false; });
+			this.selectedArea.items.forEach(c => { c.isSelected = this.keyboard.ctrl && (!c.isSelected); });
 			const items = new Array();
 			this.photos.forEach(c => {
 				if (
@@ -242,14 +246,11 @@ const PhotoViewerComponent = class extends Component {
 					(this.selectedArea.top < c.top + c.height) && (c.top <= this.selectedArea.bottom)
 				) {
 					items.push(c);
-					c.isSelected = true;
+					c.isSelected = (!this.keyboard.ctrl) || (!c.isSelected);
 				}
 			});
 			this.selectedArea.items = items;
 		}
-
-		// ショートカットの処理
-		this.shortcut();
 
 		// すべての子コンポーネントの表示位置を計算
 		this.photos.forEach((component, index) => {
