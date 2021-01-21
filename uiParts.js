@@ -93,3 +93,97 @@ const Slider = class extends Component {
 		this.context.fill();
 	}
 };
+
+const Button = class extends Component {
+	constructor(text, left, top, width, height, font = {}, color = {}) {
+		super(left, top, width, height);
+		super.clip = true;
+		this.text = text;
+		this.color = {
+			fill: (color.fill === undefined) ? "#2b2b2b" : color.fill,
+			highlight: (color.highlight === undefined) ? "#414141" : color.highlight,
+			stroke: (color.stroke === undefined) ? "#0000" : color.stroke
+		};
+		this.font = {
+			font: (font.font === undefined) ? "12px sans-serif" : font.font,
+			textBaseline: (font.textBaseline === undefined) ? "middle" : font.textBaseline,
+			textAlign: (font.textAlign === undefined) ? "center" : font.textAlign,
+			fill: (font.fill === undefined) ? "#fff" : font.fill
+		};
+	}
+	onDraw() {
+		this.context.fillStyle = this.mouse.over ? this.color.highlight : this.color.fill;
+		this.context.strokeStyle = this.color.stroke;
+		this.context.beginPath();
+		this.context.rect(0, 0, this.width, this.height);
+		this.context.fill();
+		this.context.stroke();
+		this.context.fillStyle = this.font.fill;
+		this.context.textBaseline = this.font.textBaseline;
+		this.context.textAlign = this.font.textAlign;
+		this.context.font = this.font.font;
+		const dist = 34;
+		const x =
+			this.font.textAlign === "center" ? this.width * 0.5 :
+			this.font.textAlign === "start"  ? dist :
+			this.font.textAlign === "left"   ? dist :
+			this.width - dist;
+		this.context.fillText(this.text, x, this.height * 0.5);
+	}
+};
+
+const ContextMenu = class extends Component {
+	static add(parent, texts, callback) {
+		let menu = null;
+		parent.events.addEventListener("update", e => {
+			if (
+				(menu !== null) &&
+				(!menu.isHit(parent.mouse.x, parent.mouse.y)) &&
+				(
+					(parent.mouse.lPressed && (!parent.mouse.pLPressed)) ||
+					(parent.mouse.rPressed && (!parent.mouse.pRPressed)) ||
+					(parent.mouse.mPressed && (!parent.mouse.pMPressed))
+				)
+			) {
+				parent.removeChild(menu);
+				menu = null;
+			}
+			if (parent.mouse.rPressed && (!parent.mouse.pRPressed)) {
+				if (menu === null) {
+					menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, texts));
+					menu.events.addEventListener("select", e => {
+						callback(e.detail);
+						parent.removeChild(menu);
+						menu = null;
+					});
+				}
+			}
+		});
+	}
+	constructor(left, top, texts, width = 290) {
+		super(left - 0.5, top - 0.5, width, 1);
+		super.isFront = true;
+		this.texts = texts;
+	}
+	onSetup() {
+		const h = 24;
+		this.texts.forEach((text, index) => {
+			const button = new Button(text, 2, index * h + 4, this.width - 4, h - 2, { textAlign: "left" });
+			this.addChild(button);
+		});
+		this.height = this.texts.length * h + 6;
+		this.children.forEach((c, index) => { c.events.addEventListener("lclick", () => {
+			this.events.dispatchEvent(
+				new CustomEvent("select", { detail: { text: this.texts[index], index: index } })
+			);
+		});});
+	}
+	onDraw() {
+		this.context.fillStyle = "#2b2b2b";
+		this.context.fillRect(0, 0, this.width, this.height);
+	}
+	onAfterDraw() {
+		this.context.strokeStyle = "#a0a0a0";
+		this.context.strokeRect(0, 0, this.width, this.height);
+	}
+};

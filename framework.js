@@ -18,6 +18,7 @@ const Component = class {
 			x: 0, y: 0,
 			px: 0, py: 0,
 			lDrag: false, rDrag: false, mDrag: false,
+			pLDrag: false, pRDrag: false, pMDrag: false,
 			lPressed: false, pLPressed: false,
 			rPressed: false, pRPressed: false,
 			mPressed: false, pMPressed: false,
@@ -44,6 +45,7 @@ const Component = class {
 		return child;
 	}
 	removeChild(child) {
+		child.events.dispatchEvent(new CustomEvent("remove", { detail: child }));
 		if (this.activeChild === child) {
 			this.activeChild = null;
 		}
@@ -67,6 +69,7 @@ const Component = class {
 			}
 		});
 
+		this.events.dispatchEvent(new CustomEvent("update", { detail: this }));
 		this.onUpdate();
 		this.context.save();
 		try {
@@ -77,7 +80,7 @@ const Component = class {
 				this.context.clip();
 			}
 			this.onDraw();
-			this.children.forEach(child => { child.draw(); });
+			this.children.slice().forEach(child => { child.draw(); });
 			this.onAfterDraw();
 		}
 		finally {
@@ -104,6 +107,9 @@ const Component = class {
 		this.mouse.lPressed = mouse.lPressed;
 		this.mouse.rPressed = mouse.rPressed;
 		this.mouse.mPressed = mouse.mPressed;
+		this.mouse.pLDrag = this.mouse.lDrag;
+		this.mouse.pRDrag = this.mouse.rDrag;
+		this.mouse.pMDrag = this.mouse.mDrag;
 		this.mouse.lDrag = lDrag;
 		this.mouse.rDrag = rDrag;
 		this.mouse.mDrag = mDrag;
@@ -124,8 +130,10 @@ const Component = class {
 		if (lClick) { this.activeChild = null; }
 
 		let hitFlag = false;
-		for(let index = this.children.length - 1; index >= 0; index--) {
-			const child = this.children[index];
+		const children = this.children.slice();
+		let child = null;
+		for(let index = children.length - 1; index >= 0; index--) {
+			child = children[index];
 			if (!child.isVisible) continue;
 			if (child.mouse.lDrag || child.mouse.rDrag || child.mouse.mDrag) {
 				child.setMouse(
@@ -154,6 +162,18 @@ const Component = class {
 			this.children[i] = this.children[i + 1];
 			this.children[i + 1] = tmp;
 		}
+
+		if (this.mouse.over) {
+			if (this.mouse.pLDrag && (!this.mouse.lDrag)) {
+				this.events.dispatchEvent(new CustomEvent("lclick", { detail: this }));
+			}
+			if (this.mouse.pRDrag && (!this.mouse.rDrag)) {
+				this.events.dispatchEvent(new CustomEvent("rclick", { detail: this }));
+			}
+			if (this.mouse.pMDrag && (!this.mouse.mDrag)) {
+				this.events.dispatchEvent(new CustomEvent("mclick", { detail: this }));
+			}
+		}
 	}
 	setKey(keyboard) {
 		this.keyboard.ctrl  = keyboard.ctrl;
@@ -164,7 +184,7 @@ const Component = class {
 		this.keyboard.up    = false;
 		this.keyboard.down  = false;
 		this.keyboard.press = new Set();
-		this.children.forEach(c => {
+		this.children.slice().forEach(c => {
 			if (c.isVisible && (c !== this.activeChild)) c.setKey(this.keyboard);
 		});
 		this.keyboard.left  = keyboard.left;
@@ -184,8 +204,9 @@ const Component = class {
 	}
 	drop(files, x, y) {
 		x -= this.left; y -= this.top;
-		for(let index = this.children.length - 1; index >= 0; index--) {
-			const child = this.children[index];
+		const children = this.children.slice();
+		for(let index = children.length - 1; index >= 0; index--) {
+			const child = children[index];
 			if (!child.isVisible) continue;
 			if (child.isHit(x, y)) {
 				child.drop(files, x, y);
@@ -248,7 +269,7 @@ const RootComponent = class extends Component {
 		this.canvas.width = width;
 		this.canvas.height = height;
 		super.resize(width, height);
-		this.children.forEach(child => { child.resize(this.width, this.height); });
+		this.children.slice().forEach(child => { child.resize(this.width, this.height); });
 	}
 	setEventListener() {
 		this.canvas.addEventListener("keydown", e => {

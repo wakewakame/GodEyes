@@ -1,3 +1,10 @@
+/*
+
+Todo:
+	- 右クリックでメニュー表示
+
+*/
+
 'use strict';
 
 const PhotoItemComponent = class extends Component {
@@ -158,6 +165,11 @@ const PhotoViewerComponent = class extends Component {
 			};
 		};
 		this.scrollbar = this.addChild(new ScrollBar());
+		ContextMenu.add(this, ["delete"], text => {
+			if (text.text === "delete") {
+				console.log(this.photos.filter(c => c.isSelected).length);
+			}
+		});
 	}
 	addChild(child) {
 		super.addChild(child);
@@ -302,7 +314,10 @@ const PhotoViewerComponent = class extends Component {
 	}
 	shortcut() {
 		// CtrlもしくはShiftを押していない状態でどこかをクリックすると選択全解除
-		if ((!this.keyboard.ctrl && !this.keyboard.shift) && this.mouse.lPressed && (!this.mouse.pLPressed)) {
+		if (
+			(!this.keyboard.ctrl && !this.keyboard.shift) &&
+			this.mouse.lPressed && (!this.mouse.pLPressed)
+		) {
 			this.photos.forEach(c => { c.isSelected = false; });
 		}
 
