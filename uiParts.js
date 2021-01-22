@@ -162,7 +162,7 @@ const ContextMenu = class extends Component {
 	}
 	constructor(left, top, texts, width = 290) {
 		super(left - 0.5, top - 0.5, width, 1);
-		super.isFront = true;
+		super.hookMouse = true;
 		this.texts = texts;
 	}
 	onSetup() {

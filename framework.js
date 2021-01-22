@@ -2,19 +2,21 @@
 
 const Component = class {
 	constructor(left, top, width, height) {
-		this.context = null;
-		this.left = left ? left : 0;
-		this.top = top ? top : 0;
-		this.width = width ? width : 0;
-		this.height = height ? height : 0;
-		this.isVisible = true;
-		this.isFront = false;
-		this.clip = false;
-		this.parent = null;
-		this.children = [];
-		this.activeChild = null;
-		this.events = new EventTarget();
-		this.mouse = {
+		this.context = null;                // canvasの2d context
+		this.left = left ? left : 0;        // コンポーネントのx座標(親コンポーネントの左上が原点)
+		this.top = top ? top : 0;           // コンポーネントのy座標(親コンポーネントの左上が原点)
+		this.width = width ? width : 0;     // コンポーネントの幅
+		this.height = height ? height : 0;  // コンポーネントの高さ
+		this.isVisible = true;              // コンポーネントを見えるようにする
+		this.isFront = false;               // 同じ階層のコンポーネントのなかで常に手前に表示されるようにする
+		this.hookMouse = false;             // 親コンポーネントにマウスイベントを渡さないようにする
+		this.clip = false;                  // コンポーネントの範囲外の描画は透過する
+		this.parent = null;                 // 親コンポーネントの参照
+		this.children = [];                 // 子コンポーネントの配列
+		this.activeChild = null;            // 最後に右クリックされた子コンポーネント(キーイベントの送信に使う)
+		this.events = new EventTarget();    // 汎用イベントリスナー
+		// 親から子へ伝わるマウスイベント
+		this.mouse_ = {
 			x: 0, y: 0,
 			px: 0, py: 0,
 			lDrag: false, rDrag: false, mDrag: false,
@@ -26,6 +28,9 @@ const Component = class {
 			lDoubleClick: false,
 			over: false
 		};
+		// 子から親へ伝わる(ように見える)マウスイベント
+		this.mouse = Object.assign({}, this.mouse_);
+		// キーイベント
 		this.keyboard = {
 			ctrl: false,
 			shift: false,
@@ -86,12 +91,13 @@ const Component = class {
 		finally {
 			this.context.restore();
 		}
-		this.mouse.lPressed = false; this.mouse.pLPressed = false;
-		this.mouse.rPressed = false; this.mouse.pRPressed = false;
-		this.mouse.mPressed = false; this.mouse.pMPressed = false;
-		this.mouse.zDelta = 0;
-		this.mouse.lDoubleClick = false;
-		this.mouse.over = false;
+		this.mouse_.lPressed = false; this.mouse_.pLPressed = false;
+		this.mouse_.rPressed = false; this.mouse_.pRPressed = false;
+		this.mouse_.mPressed = false; this.mouse_.pMPressed = false;
+		this.mouse_.zDelta = 0;
+		this.mouse_.lDoubleClick = false;
+		this.mouse_.over = false;
+		this.mouse = Object.assign({}, this.mouse_);
 	}
 	resize(width, height) {
 		this.width = width;
@@ -99,32 +105,32 @@ const Component = class {
 		this.onResize();
 	}
 	setMouse(mouse, lDrag, rDrag, mDrag) {
-		this.mouse.x = mouse.x - this.left; this.mouse.y = mouse.y - this.top;
-		this.mouse.px = mouse.px - this.left; this.mouse.py = mouse.py - this.top;
-		this.mouse.pLPressed = mouse.pLPressed;
-		this.mouse.pRPressed = mouse.pRPressed;
-		this.mouse.pMPressed = mouse.pMPressed;
-		this.mouse.lPressed = mouse.lPressed;
-		this.mouse.rPressed = mouse.rPressed;
-		this.mouse.mPressed = mouse.mPressed;
-		this.mouse.pLDrag = this.mouse.lDrag;
-		this.mouse.pRDrag = this.mouse.rDrag;
-		this.mouse.pMDrag = this.mouse.mDrag;
-		this.mouse.lDrag = lDrag;
-		this.mouse.rDrag = rDrag;
-		this.mouse.mDrag = mDrag;
-		this.mouse.zDelta = mouse.zDelta;
-		this.mouse.lDoubleClick = mouse.lDoubleClick;
-		this.mouse.over = (
-			(0 <= this.mouse.x) && (this.mouse.x < this.width) &&
-			(0 <= this.mouse.y) && (this.mouse.y < this.height)
+		this.mouse_.x = mouse.x - this.left; this.mouse_.y = mouse.y - this.top;
+		this.mouse_.px = mouse.px - this.left; this.mouse_.py = mouse.py - this.top;
+		this.mouse_.pLPressed = mouse.pLPressed;
+		this.mouse_.pRPressed = mouse.pRPressed;
+		this.mouse_.pMPressed = mouse.pMPressed;
+		this.mouse_.lPressed = mouse.lPressed;
+		this.mouse_.rPressed = mouse.rPressed;
+		this.mouse_.mPressed = mouse.mPressed;
+		this.mouse_.pLDrag = this.mouse_.lDrag;
+		this.mouse_.pRDrag = this.mouse_.rDrag;
+		this.mouse_.pMDrag = this.mouse_.mDrag;
+		this.mouse_.lDrag = lDrag;
+		this.mouse_.rDrag = rDrag;
+		this.mouse_.mDrag = mDrag;
+		this.mouse_.zDelta = mouse.zDelta;
+		this.mouse_.lDoubleClick = mouse.lDoubleClick;
+		this.mouse_.over = (
+			(0 <= this.mouse_.x) && (this.mouse_.x < this.width) &&
+			(0 <= this.mouse_.y) && (this.mouse_.y < this.height)
 		);
-		const lClick = this.mouse.lPressed && (!this.mouse.pLPressed);
-		const rClick = this.mouse.rPressed && (!this.mouse.pRPressed);
-		const mClick = this.mouse.mPressed && (!this.mouse.pMPressed);
-		const uLClick = (!this.mouse.lPressed) && this.mouse.pLPressed;
-		const uRClick = (!this.mouse.rPressed) && this.mouse.pRPressed;
-		const uMClick = (!this.mouse.mPressed) && this.mouse.pMPressed;
+		const lClick = this.mouse_.lPressed && (!this.mouse_.pLPressed);
+		const rClick = this.mouse_.rPressed && (!this.mouse_.pRPressed);
+		const mClick = this.mouse_.mPressed && (!this.mouse_.pMPressed);
+		const uLClick = (!this.mouse_.lPressed) && this.mouse_.pLPressed;
+		const uRClick = (!this.mouse_.rPressed) && this.mouse_.pRPressed;
+		const uMClick = (!this.mouse_.mPressed) && this.mouse_.pMPressed;
 
 		let activateChildIndex = this.children.length - 1;
 		if (lClick) { this.activeChild = null; }
@@ -137,16 +143,16 @@ const Component = class {
 			if (!child.isVisible) continue;
 			if (child.mouse.lDrag || child.mouse.rDrag || child.mouse.mDrag) {
 				child.setMouse(
-					this.mouse,
+					this.mouse_,
 					(child.mouse.lDrag || lClick) && (!uLClick),
 					(child.mouse.rDrag || rClick) && (!uRClick),
 					(child.mouse.mDrag || mClick) && (!uMClick)
 				);
 				break;
 			}
-			if ((!hitFlag) && child.isHit(this.mouse.x, this.mouse.y)) {
+			if ((!hitFlag) && child.isHit(this.mouse_.x, this.mouse_.y)) {
 				child.setMouse(
-					this.mouse,
+					this.mouse_,
 					child.mouse.lDrag || lClick,
 					child.mouse.rDrag || rClick,
 					child.mouse.mDrag || mClick
@@ -156,6 +162,9 @@ const Component = class {
 				break;
 			};
 		}
+
+		if ((child === null) || (!child.hookMouse)) { this.mouse = Object.assign({}, this.mouse_); }
+		else { this.mouse.lDrag = false; this.mouse.rDrag = false; this.mouse.mDrag = false; }
 
 		for(let i = activateChildIndex; i < this.children.length - 1; i++) {
 			const tmp = this.children[i];
