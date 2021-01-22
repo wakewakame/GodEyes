@@ -173,7 +173,6 @@ const RootComponent = class extends Component {
 		super.context = this.canvas.getContext("2d");
 		super.root = this;
 		super.parent = this;
-		this.mouse = { x: 0, y: 0 };
 		this.lDragComponent = null;  // 右クリックでドラッグ中のコンポーネント
 		this.rDragComponent = null;  // 左クリックでドラッグ中のコンポーネント
 		this.mDragComponent = null;  // 中央クリックでドラッグ中のコンポーネント
@@ -191,23 +190,24 @@ const RootComponent = class extends Component {
 	}
 	onSetup() {
 		const dispatchMouseEvent = (name, e) => {
-			let flag = false;
-			if (this.lDragComponent) { e.dispatchComponent(name, this.lDragComponent); flag = true; }
-			if (this.rDragComponent) { e.dispatchComponent(name, this.rDragComponent); flag = true; }
-			if (this.mDragComponent) { e.dispatchComponent(name, this.mDragComponent); flag = true; }
-			if (!flag) { e.dispatchComponent(name, this.getHitComponent(this.mouse)); }
+			const dragComponent = new Set(
+				[this.lDragComponent, this.rDragComponent, this.mDragComponent].filter(c => (c !== null))
+			);
+			if (dragComponent.size > 0) {
+				dragComponent.forEach(c => { e.dispatchComponent(name, c); });
+			}
+			else {
+				e.dispatchComponent(name, this.getHitComponent(e));
+			}
 		};
 		this.canvas.addEventListener("mousemove", e => {
-			const mouseEvent = CustomMouseEvent.fromMouseEvent(e);
-			this.mouse.x = mouseEvent.globalX;
-			this.mouse.y = mouseEvent.globalY;
-			dispatchMouseEvent("mousemove", mouseEvent);
+			dispatchMouseEvent("mousemove", CustomMouseEvent.fromMouseEvent(e));
 		});
 		this.canvas.addEventListener("mousedown", e => {
 			const mouseEvent = CustomMouseEvent.fromMouseEvent(e);
-			if (mouseEvent.which === 1) { this.activeChild = this.lDragComponent = this.getHitComponent(this.mouse); }
-			if (mouseEvent.which === 2) { this.mDragComponent = this.getHitComponent(this.mouse); }
-			if (mouseEvent.which === 3) { this.rDragComponent = this.getHitComponent(this.mouse); }
+			if (mouseEvent.which === 1) { this.activeChild = this.lDragComponent = this.getHitComponent(mouseEvent); }
+			if (mouseEvent.which === 2) { this.mDragComponent = this.getHitComponent(mouseEvent); }
+			if (mouseEvent.which === 3) { this.rDragComponent = this.getHitComponent(mouseEvent); }
 			dispatchMouseEvent("mousedown", mouseEvent);
 		});
 		this.canvas.addEventListener("mouseup", e => {
@@ -229,6 +229,7 @@ const RootComponent = class extends Component {
 		this.canvas.addEventListener("DOMMouseScroll", mousewheel);
 		this.canvas.addEventListener("pointerdown", e => { this.canvas.setPointerCapture(e.pointerId); });
 		this.canvas.addEventListener("pointerup", e => { this.canvas.releasePointerCapture(e.pointerId); });
+		this.canvas.oncontextmenu = () => { return false; };
 		this.canvas.addEventListener("keydown", e => {
 			if (this.activeChild === null) return;
 			this.activeChild.dispatchEvent("keydown", new CustomKeyboardEvent(e));
@@ -241,7 +242,15 @@ const RootComponent = class extends Component {
 			if (this.activeChild === null) return;
 			this.activeChild.dispatchEvent("keypress", new CustomKeyboardEvent(e));
 		});
-		this.canvas.oncontextmenu = () => { return false; };
+		document.addEventListener("dragover", e => { e.preventDefault(); });
+		document.addEventListener("drop", e => {
+			e.preventDefault();
+			const files = e.dataTransfer.files;
+			if (files.length === 0) return;
+			const mouseEvent = CustomMouseEvent.fromMouseEvent(e);
+			const hitComponent = this.getHitComponent(mouseEvent);
+			hitComponent.dispatchEvent("openfiles", files);
+		});
 	}
 };
 

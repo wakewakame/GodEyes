@@ -9,14 +9,15 @@ const Test = class extends Component {
 	onSetup() {
 		this.addEventListener("mousedown", e => {
 			this.active();
-			this.lDrag = true;
+			if (e.which === 1) this.lDrag = true;
 		});
 		this.addEventListener("mouseup", e => {
-			this.lDrag = false;
+			if (e.which === 1) this.lDrag = false;
 		});
 		this.addEventListener("mousemove", e => {
 			if (this.lDrag) { this.left += e.movementX; this.top += e.movementY; }
 		});
+		this.addEventListener("openfiles", e => { console.log(e); });
 	}
 	onDraw() {
 		this.context.fillStyle = this.color;
