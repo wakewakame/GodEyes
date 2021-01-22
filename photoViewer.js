@@ -165,9 +165,15 @@ const PhotoViewerComponent = class extends Component {
 			};
 		};
 		this.scrollbar = this.addChild(new ScrollBar());
-		ContextMenu.add(this, ["delete"], text => {
+		ContextMenu.add(this, () => {
+			const result = [];
+			if (this.photos.some(c => c.isSelected)) result.push("delete");
+			else result.push("__delete");
+			return result;
+		}, text => {
 			if (text.text === "delete") {
-				console.log(this.photos.filter(c => c.isSelected).length);
+				const selectedPhotos = this.photos.filter(c => c.isSelected);
+				selectedPhotos.forEach(c => { this.removeChild(c); });
 			}
 		});
 	}

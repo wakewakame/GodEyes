@@ -133,7 +133,7 @@ const Button = class extends Component {
 };
 
 const ContextMenu = class extends Component {
-	static add(parent, texts, callback) {
+	static add(parent, get_lists, callback) {
 		let menu = null;
 		parent.events.addEventListener("update", e => {
 			if (
@@ -150,7 +150,7 @@ const ContextMenu = class extends Component {
 			}
 			if (parent.mouse.rPressed && (!parent.mouse.pRPressed)) {
 				if (menu === null) {
-					menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, texts));
+					menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, get_lists()));
 					menu.events.addEventListener("select", e => {
 						callback(e.detail);
 						parent.removeChild(menu);
