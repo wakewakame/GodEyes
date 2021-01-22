@@ -148,7 +148,7 @@ const ContextMenu = class extends Component {
 				parent.removeChild(menu);
 				menu = null;
 			}
-			if (parent.mouse.rPressed && (!parent.mouse.pRPressed)) {
+			if ((!parent.mouse.rPressed) && parent.mouse.pRPressed) {
 				if (menu === null) {
 					menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, get_lists()));
 					menu.events.addEventListener("select", e => {
@@ -168,11 +168,17 @@ const ContextMenu = class extends Component {
 	onSetup() {
 		const h = 24;
 		this.texts.forEach((text, index) => {
-			const button = new Button(text, 2, index * h + 4, this.width - 4, h - 2, { textAlign: "left" });
+			const font = { fill: "#fff", textAlign: "left" };
+			if (text.substring(0, 2) === "__") {
+				text = text.substring(2);
+				font.fill = "#858585";
+			}
+			const button = new Button(text, 2, index * h + 4, this.width - 4, h - 2, font);
 			this.addChild(button);
 		});
 		this.height = this.texts.length * h + 6;
 		this.children.forEach((c, index) => { c.events.addEventListener("lclick", () => {
+			if (this.texts[index].substring(0, 2) === "__") return;
 			this.events.dispatchEvent(
 				new CustomEvent("select", { detail: { text: this.texts[index], index: index } })
 			);

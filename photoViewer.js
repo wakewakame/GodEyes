@@ -237,8 +237,11 @@ const PhotoViewerComponent = class extends Component {
 
 		// ドラッグで選択
 		this.selectedArea.isEnable = false;
-		if (this.mouse.lDrag && (!this.scrollbar.mouse.lDrag)) {
-			if (!this.mouse.pLPressed) {
+		if (
+			(this.mouse.lDrag && (!this.scrollbar.mouse.lDrag)) ||
+			(this.mouse.rDrag && (!this.scrollbar.mouse.rDrag))
+		) {
+			if ((!this.mouse.pLPressed) && (!this.mouse.pRPressed)) {
 				this.selectedArea.pivotX = this.mouse.x;
 				this.selectedArea.pivotY = this.mouse.y;
 				this.selectedArea.pivotScroll = this.scroll;
