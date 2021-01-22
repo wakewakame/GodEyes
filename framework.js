@@ -71,7 +71,11 @@ const Component = class extends EventListener {
 		this.isClip = false;                // コンポーネントの範囲外の描画は透過する
 
 		// マウスイベント処理
-		this.mouse = { x: 0, y: 0, lDrag: false, rDrag: false, mDrag: false, over: false };
+		this.mouse = {
+			x: 0, y: 0,
+			lDrag: false, rDrag: false, mDrag: false,
+			wheel: 0, over: false
+		};
 		this.addEventListener("mousedown", e => {
 			if (e.which === 1) this.mouse.lDrag = true;
 			if (e.which === 2) this.mouse.mDrag = true;
@@ -86,8 +90,17 @@ const Component = class extends EventListener {
 			this.mouse.x = e.x;
 			this.mouse.y = e.y;
 		});
+		this.addEventListener("mousewheel", e => { this.mouse.wheel += e.wheel; });
 		this.addEventListener("mouseenter", e => { this.mouse.over = true; });
 		this.addEventListener("mouseleave", e => { this.mouse.over = false; });
+
+		// キーイベント処理
+		this.key = {
+			Control: false, Alt: false, Shift: false,
+			ArrowLeft: false, ArrowRight: false, ArrowUp: false, ArrowDown: false
+		};
+		this.addEventListener("keydown", e => { if (Object.keys(this.key).some(k => (k === e.key))) { this.key[e.key] = true; } });
+		this.addEventListener("keyup", e => { if (Object.keys(this.key).some(k => (k === e.key))) { this.key[e.key] = false; } });
 	}
 	addChild(child) {
 		child.context = this.context;
@@ -115,6 +128,11 @@ const Component = class extends EventListener {
 		}
 	}
 	update() {
+		this.mouse.wheel = 0;
+		if (this.root.activeChild !== this) {
+			Object.keys(this.key).forEach(key => { this.key[key] = false; });
+		}
+
 		this.children.filter(c => c.isFront).forEach(c => {
 			const index = this.children.findIndex(c_ => (c_ === c));
 			for(let i = index; i < this.children.length - 1; i++) {

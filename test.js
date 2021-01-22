@@ -11,6 +11,12 @@ const Test = class extends DragComponent {
 		});
 		this.addEventListener("openfiles", e => { console.log(e); });
 	}
+	onUpdate() {
+		if (this.key.ArrowLeft)  this.left -= 3;
+		if (this.key.ArrowRight) this.left += 3;
+		if (this.key.ArrowUp)    this.top  -= 3;
+		if (this.key.ArrowDown)  this.top  += 3;
+	}
 	onDraw() {
 		this.context.fillStyle = this.color;
 		this.context.fillRect(0, 0, this.width, this.height);

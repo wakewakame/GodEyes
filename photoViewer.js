@@ -1,10 +1,3 @@
-/*
-
-Todo:
-	- 右クリックでメニュー表示
-
-*/
-
 'use strict';
 
 const PhotoItemComponent = class extends Component {
@@ -49,24 +42,21 @@ const PhotoItemComponent = class extends Component {
 		this.img = img;
 		this.thumbnail = thumbnail;
 		this.isSelected = false;
+
+		
+		// ダブルクリック時にイベントリスナーを発火
+		this.addEventListener("dblclick", e => {
+			this.dispatchEvent("open", this);
+		});
 	}
-	draw() {
+	onUpdate() {
 		// 描画範囲外にいる要素は除外
-		if (
+		this.isVisible = !(
 			(this.left + this.width < 0) ||
 			(this.top + this.height < 0) ||
 			(this.parent.width <= this.left) ||
 			(this.parent.height <= this.top)
-		) {
-			return;
-		}
-		super.draw();
-	}
-	onUpdate() {
-		// ダブルクリック時にイベントリスナーを発火
-		if (this.mouse.lDoubleClick) {
-			this.events.dispatchEvent(new CustomEvent("open", { detail: this }));
-		}
+		);
 	}
 	onDraw() {
 		// 表示する画像が一定サイズ以下であれば縮小版の画像を表示する(処理速度向上のため)
@@ -103,6 +93,7 @@ const PhotoItemComponent = class extends Component {
 
 const PhotoViewerComponent = class extends Component {
 	onSetup() {
+		super.isClip = true;       // 範囲外に描画されるものを隠す
 		this.zoom = 1.0;           // 拡大率
 		this.scroll = 0.0;         // スクロール座標
 		this.itemW = 200;          // リストアイテムのデフォルトの横幅
@@ -112,18 +103,59 @@ const PhotoViewerComponent = class extends Component {
 		this.listX = 0;            // リストの列数
 		this.listW = 0;            // リストのよこはば
 		this.listH = 0;            // リストの縦幅
-		this.zDelta = 0;           // マウスホイール(スムーズなアニメーションになるように計算するため)
-		super.clip = true;         // 範囲外に描画されるものを隠す
+		this.wheel = 0;            // マウスホイール(スムーズなアニメーションになるように計算するため)
 		this.selectedArea = {
 			isEnable: false,
 			left: 0, top: 0, right: 0, bottom: 0,
 			pivotX: 0, pivotY: 0, pivotScroll: 0,
 			items: new Array()
 		};
+
 		this.photos = new Array();  // リストアイテムの配列
-		this.onOpen = function(e) {
-			this.events.dispatchEvent(new CustomEvent("open", { detail: e.detail }));
-		}.bind(this);
+
+		this.addEventListener("mousedown", e => {
+			// CtrlもしくはShiftを押していない状態でどこかをクリックすると選択全解除
+			if ((!this.key.Control) && (!this.key.Shift)) {
+				this.photos.forEach(c => { c.isSelected = false; });
+			}
+			if ((e.which === 1) || (e.which === 3)) {
+				this.selectedArea.pivotX = e.x;
+				this.selectedArea.pivotY = e.y;
+				this.selectedArea.pivotScroll = this.scroll;
+				this.selectedArea.items = new Array();
+			}
+		});
+
+		this.addEventListener("keydown", e => {
+			// Escで選択全解除
+			if (e.key === "Escape") { this.photos.forEach(c => { c.isSelected = false; }); }
+
+			// Ctrl+Aで全選択
+			if ((e.key === "a") && e.ctrl) {
+				this.photos.forEach(c => { c.isSelected = true; });
+			}
+
+			// Deleteキーで選択されているものを削除
+			if (e.key === "Delete") {
+				const selectedPhotos = this.photos.filter(c => c.isSelected);
+				selectedPhotos.forEach(c => { this.removeChild(c); });
+			}
+		});
+
+		this.addEventListener("openfiles", files => {
+			for(let file of files) {
+				let name = file.name;
+				let number = 1;
+				while(this.photos.some(p => (p.name === name))) {
+					name = "(" + number + ") " + file.name;
+					number += 1;
+				}
+				PhotoItemComponent.create(file, name)
+					.then(component => { this.addChild(component); })
+					.catch(err => { console.error(err); });
+			}
+		});
+
 		const ScrollBar = class extends Component {
 			constructor() { super(0, 0, 17, 0); }
 			onSetup() {
@@ -165,6 +197,7 @@ const PhotoViewerComponent = class extends Component {
 			};
 		};
 		this.scrollbar = this.addChild(new ScrollBar());
+		/*
 		ContextMenu.add(this, () => {
 			const result = [];
 			if (this.photos.some(c => c.isSelected)) result.push("delete");
@@ -176,12 +209,17 @@ const PhotoViewerComponent = class extends Component {
 				selectedPhotos.forEach(c => { this.removeChild(c); });
 			}
 		});
+		*/
+
+		this.onOpen = function(e) {
+			this.dispatchEvent("open", e);
+		}.bind(this);
 	}
 	addChild(child) {
 		super.addChild(child);
 		if (child instanceof PhotoItemComponent) {
 			this.photos.push(child);
-			child.events.addEventListener("open", this.onOpen);
+			child.addEventListener("open", this.onOpen);
 		}
 		return child;
 	}
@@ -194,15 +232,19 @@ const PhotoViewerComponent = class extends Component {
 		return child;
 	}
 	onUpdate() {
+		// 方向キーでスクロール
+		this.wheel += this.key.ArrowUp   ? 30.0 : 0.0;
+		this.wheel -= this.key.ArrowDown ? 30.0 : 0.0;
+
 		// スクロールをスムーズにする
-		this.zDelta *= 0.6;
-		this.zDelta += this.mouse.zDelta;
+		this.wheel *= 0.6;
+		this.wheel += this.mouse.wheel;
 
 		// Ctrlが押された状態でのスクロールは拡大縮小
 		// 選択状態のときは拡大縮小はしない
-		if (this.keyboard.ctrl && (!this.mouse.lDrag)) {
+		if (this.key.Control && (!this.mouse.lDrag)) {
 			// アイコンサイズの拡大縮小
-			const zoom = 2.0 ** (this.zDelta / 1200.0);
+			const zoom = 2.0 ** (this.wheel / 1200.0);
 			const zoom_ = this.zoom;
 			this.zoom *= zoom;
 			this.zoom = Math.min(this.zoom, this.width / this.itemW, this.height / this.itemH);
@@ -222,7 +264,7 @@ const PhotoViewerComponent = class extends Component {
 
 		// 通常のスクロール
 		else {
-			this.scroll -= this.zDelta;
+			this.scroll -= this.wheel;
 			this.listX = Math.floor((this.width - this.scrollbar.width) / this.itemW_);
 			this.listW = this.itemW_ * this.listX;
 			this.listH = Math.ceil(this.photos.length / this.listX) * this.itemH_;
@@ -232,21 +274,9 @@ const PhotoViewerComponent = class extends Component {
 		this.scroll = Math.min(this.scroll, Math.ceil(this.photos.length / this.listX) * this.itemH_ - this.height);
 		this.scroll = Math.max(this.scroll, 0);
 
-		// ショートカットの処理
-		this.shortcut();
-
 		// ドラッグで選択
 		this.selectedArea.isEnable = false;
-		if (
-			(this.mouse.lDrag && (!this.scrollbar.mouse.lDrag)) ||
-			(this.mouse.rDrag && (!this.scrollbar.mouse.rDrag))
-		) {
-			if ((!this.mouse.pLPressed) && (!this.mouse.pRPressed)) {
-				this.selectedArea.pivotX = this.mouse.x;
-				this.selectedArea.pivotY = this.mouse.y;
-				this.selectedArea.pivotScroll = this.scroll;
-				this.selectedArea.items = new Array();
-			}
+		if (this.mouse.lDrag || this.mouse.rDrag) {
 			this.selectedArea.pivotY -= this.scroll - this.selectedArea.pivotScroll;
 			this.selectedArea.pivotScroll = this.scroll;
 			this.selectedArea.left   = Math.min(this.mouse.x, this.selectedArea.pivotX);
@@ -254,7 +284,7 @@ const PhotoViewerComponent = class extends Component {
 			this.selectedArea.right  = Math.max(this.mouse.x, this.selectedArea.pivotX);
 			this.selectedArea.bottom = Math.max(this.mouse.y, this.selectedArea.pivotY);
 			this.selectedArea.isEnable = true;
-			this.selectedArea.items.forEach(c => { c.isSelected = this.keyboard.ctrl && (!c.isSelected); });
+			this.selectedArea.items.forEach(c => { c.isSelected = this.key.Control && (!c.isSelected); });
 			const items = new Array();
 			this.photos.forEach(c => {
 				if (
@@ -262,7 +292,7 @@ const PhotoViewerComponent = class extends Component {
 					(this.selectedArea.top < c.top + c.height) && (c.top <= this.selectedArea.bottom)
 				) {
 					items.push(c);
-					c.isSelected = (!this.keyboard.ctrl) || (!c.isSelected);
+					c.isSelected = (!this.key.Control) || (!c.isSelected);
 				}
 			});
 			this.selectedArea.items = items;
@@ -306,46 +336,5 @@ const PhotoViewerComponent = class extends Component {
 			this.context.fill();
 			this.context.stroke();
 		}
-	}
-	drop(files, x, y) { this.onDrop(files); }
-	onDrop(files) {
-		for(let file of files) {
-			let name = file.name;
-			let number = 1;
-			while(this.photos.some(p => (p.name === name))) {
-				name = "(" + number + ") " + file.name;
-				number += 1;
-			}
-			PhotoItemComponent.create(file, name)
-				.then(component => { this.addChild(component); })
-				.catch(err => { console.error(err); });
-		}
-	}
-	shortcut() {
-		// CtrlもしくはShiftを押していない状態でどこかをクリックすると選択全解除
-		if (
-			(!this.keyboard.ctrl && !this.keyboard.shift) &&
-			this.mouse.lPressed && (!this.mouse.pLPressed)
-		) {
-			this.photos.forEach(c => { c.isSelected = false; });
-		}
-
-		// Escで選択全解除
-		if (this.keyboard.press.has("Escape")) { this.photos.forEach(c => { c.isSelected = false; }); }
-
-		// Ctrl+Aで全選択
-		if (this.keyboard.ctrl && this.keyboard.press.has("a")) {
-			this.photos.forEach(c => { c.isSelected = true; });
-		}
-
-		// Deleteキーで選択されているものを削除
-		if (this.keyboard.press.has("Delete")) {
-			const selectedPhotos = this.photos.filter(c => c.isSelected);
-			selectedPhotos.forEach(c => { this.removeChild(c); });
-		}
-
-		// 方向キーでスクロール
-		this.zDelta += this.keyboard.up   ? 30.0 : 0.0;
-		this.zDelta -= this.keyboard.down ? 30.0 : 0.0;
 	}
 };

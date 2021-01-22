@@ -8,7 +8,7 @@ const ButtonComponent = class extends Component {
 	}
 	onUpdate() {
 		if (this.pLDrag && (!this.mouse.lDrag) && this.mouse.over) {
-			this.events.dispatchEvent(new CustomEvent("click"));
+			this.dispatchEvent(new CustomEvent("click"));
 		}
 		this.pLDrag = this.mouse.lDrag;
 	}
@@ -29,12 +29,12 @@ const MainComponent = class extends Component {
 		this.button = this.addChild(new ButtonComponent("click here", 0, 0, 1, 1));
 		this.button.isVisible = false;
 		this.onResize();
-		this.viewer.events.addEventListener("open", e => {
+		this.viewer.addEventListener("open", e => {
 			this.viewer.isVisible = false;
 			this.button.isVisible = true;
 			this.activeChild = this.button;
 		});
-		this.button.events.addEventListener("click", e => {
+		this.button.addEventListener("click", e => {
 			this.viewer.isVisible = true;
 			this.button.isVisible = false;
 			this.activeChild = this.viewer;
