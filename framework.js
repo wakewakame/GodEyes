@@ -68,6 +68,14 @@ const Component = class extends EventListener {
 		child.parent = null;
 		this.children = this.children.filter(c => (c !== child));
 	}
+	active() {
+		const thisIndex = this.parent.children.findIndex(c => (c === this));
+		for(let i = thisIndex; i < this.parent.children.length - 1; i++) {
+			const tmp = this.parent.children[i];
+			this.parent.children[i] = this.parent.children[i + 1];
+			this.parent.children[i + 1] = tmp;
+		}
+	}
 	update() {
 		this.children.filter(c => c.isFront).forEach(c => {
 			const index = this.children.findIndex(c_ => (c_ === c));
@@ -100,11 +108,6 @@ const Component = class extends EventListener {
 			this.context.restore();
 		}
 	}
-	draw() {
-		this.onDraw();
-		this.children.slice().forEach(c => c.draw());
-		this.onAfterDraw();
-	}
 	resize(width, height) {
 		this.width = width;
 		this.height = height;
@@ -119,8 +122,9 @@ const Component = class extends EventListener {
 	}
 	getHitComponent(localPosition) {
 		if (!this.isHit(localPosition)) return null;
-		for(let child of this.children) {
-			const childPosition = { x: localPosition.x + child.left, y: localPosition.y + child.top };
+		for(let index = this.children.length - 1; index >= 0; index--) {
+			const child = this.children[index];
+			const childPosition = { x: localPosition.x - child.left, y: localPosition.y - child.top };
 			const result = child.getHitComponent(childPosition);
 			if (result !== null) return result;
 		}
