@@ -1,22 +1,14 @@
 'use strict';
 
 const DragComponent = class extends Component {
-	setup(context) {
-		this.dragStart = { x: 0, y: 0, left: 0, top: 0 };
-		super.setup(context);
-	}
-	draw() {
-		let left = this.left; let top = this.top;
-		if (this.mouse.lDrag && (!this.children.some(c => c.mouse.lDrag))) {
-			if (!this.mouse.pLPressed) {
-				this.dragStart = { x: this.mouse.x, y: this.mouse.y, left: this.left, top: this.top };
-			}
-			this.left += this.dragStart.left - this.left + this.mouse.x - this.dragStart.x;
-			this.top += this.dragStart.top - this.top + this.mouse.y - this.dragStart.y;
-		}
-		super.draw();
-		this.dragStart.x -= this.left - left;
-		this.dragStart.y -= this.top - top;
+	constructor(left, top, width, height) {
+		super(left, top, width, height);
+		this.addEventListener("mousedown", e => {
+			this.active();
+		});
+		this.addEventListener("mousemove", e => {
+			if (this.mouse.lDrag) { this.left += e.movementX; this.top += e.movementY; }
+		});
 	}
 };
 
@@ -63,7 +55,7 @@ const Picker = class extends DragComponent {
 		this.context.arc(this.radius, this.radius, this.radius, 0, 2 * Math.PI);
 		this.context.fill();
 	}
-	isHit(x, y) { return ((x - this.left - this.radius) ** 2) + ((y - this.top - this.radius) ** 2) < (this.radius ** 2); }
+	isHit(p, i) { return ((p.x - this.left + this.radius) ** 2) + ((p.y - this.top + this.radius) ** 2) < (this.radius ** 2); }
 };
 
 const Slider = class extends Component {
@@ -78,7 +70,7 @@ const Slider = class extends Component {
 	onSetup() {
 		this.picker = this.addChild(new Picker(12, this.pickColor, this.isX, !this.isX));
 	}
-	isHit(x, y) { return super.isHit(x, y) || this.picker.isHit(x - this.left, y - this.top); }
+	isHit(p, i) { return super.isHit(p, true); }
 	onDraw() {
 		this.context.fillStyle = this.backColor;
 		this.context.beginPath();
@@ -133,30 +125,14 @@ const Button = class extends Component {
 };
 
 const ContextMenu = class extends Component {
-	static add(parent, get_lists, callback) {
+	static add(parent, getLists, callback) {
 		let menu = null;
-		parent.events.addEventListener("update", e => {
-			if (
-				(menu !== null) &&
-				(!menu.isHit(parent.mouse.x, parent.mouse.y)) &&
-				(
-					(parent.mouse.lPressed && (!parent.mouse.pLPressed)) ||
-					(parent.mouse.rPressed && (!parent.mouse.pRPressed)) ||
-					(parent.mouse.mPressed && (!parent.mouse.pMPressed))
-				)
-			) {
-				parent.removeChild(menu);
-				menu = null;
-			}
-			if ((!parent.mouse.rPressed) && parent.mouse.pRPressed) {
-				if (menu === null) {
-					menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, get_lists()));
-					menu.events.addEventListener("select", e => {
-						callback(e.detail);
-						parent.removeChild(menu);
-						menu = null;
-					});
-				}
+		const remove = () => { parent.removeChild(menu); menu = null; };
+		parent.addEventListener("mousedown", e => {
+			if (menu !== null) remove();
+			if (e.which === 3) {
+				menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, getLists()));
+				menu.addEventListener("select", e => { remove(); callback(e); });
 			}
 		});
 	}
@@ -177,11 +153,10 @@ const ContextMenu = class extends Component {
 			this.addChild(button);
 		});
 		this.height = this.texts.length * h + 6;
-		this.children.forEach((c, index) => { c.events.addEventListener("lclick", () => {
+		this.children.forEach((c, index) => { c.addEventListener("mouseup", e => {
+			if (e.which !== 1) return;
 			if (this.texts[index].substring(0, 2) === "__") return;
-			this.events.dispatchEvent(
-				new CustomEvent("select", { detail: { text: this.texts[index], index: index } })
-			);
+			this.dispatchEvent("select", { text: this.texts[index], index: index });
 		});});
 	}
 	onDraw() {

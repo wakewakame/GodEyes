@@ -69,6 +69,25 @@ const Component = class extends EventListener {
 		this.isVisible = true;              // コンポーネントの表示
 		this.isFront = false;               // 同じ階層のコンポーネントの中で常に最前面に表示されるようにする
 		this.isClip = false;                // コンポーネントの範囲外の描画は透過する
+
+		// マウスイベント処理
+		this.mouse = { x: 0, y: 0, lDrag: false, rDrag: false, mDrag: false, over: false };
+		this.addEventListener("mousedown", e => {
+			if (e.which === 1) this.mouse.lDrag = true;
+			if (e.which === 2) this.mouse.mDrag = true;
+			if (e.which === 3) this.mouse.rDrag = true;
+		});
+		this.addEventListener("mouseup", e => {
+			if (e.which === 1) this.mouse.lDrag = false;
+			if (e.which === 2) this.mouse.mDrag = false;
+			if (e.which === 3) this.mouse.rDrag = false;
+		});
+		this.addEventListener("mousemove", e => {
+			this.mouse.x = e.x;
+			this.mouse.y = e.y;
+		});
+		this.addEventListener("mouseenter", e => { this.mouse.over = true; });
+		this.addEventListener("mouseleave", e => { this.mouse.over = false; });
 	}
 	addChild(child) {
 		child.context = this.context;
@@ -176,7 +195,8 @@ const RootComponent = class extends Component {
 		this.lDragComponent = null;  // 右クリックでドラッグ中のコンポーネント
 		this.rDragComponent = null;  // 左クリックでドラッグ中のコンポーネント
 		this.mDragComponent = null;  // 中央クリックでドラッグ中のコンポーネント
-		this.activeChild = null;
+		this.activeChild = null;     // 最後に左クリックされたコンポーネントの参照(ここにキーイベントを送る)
+		this.hitComponent = null;    // カーソル直下にあるコンポーネントの参照
 		this.onSetup();
 	}
 	resize(width, height) {
@@ -195,9 +215,14 @@ const RootComponent = class extends Component {
 			);
 			if (dragComponent.size > 0) {
 				dragComponent.forEach(c => { e.dispatchComponent(name, c); });
+				return;
 			}
-			else {
-				e.dispatchComponent(name, this.getHitComponent(e));
+			const hitComponent = this.getHitComponent(e);
+			e.dispatchComponent(name, hitComponent);
+			if (this.hitComponent !== hitComponent) {
+				if (this.hitComponent !== null) { this.hitComponent.dispatchEvent("mouseleave", undefined); }
+				this.hitComponent = hitComponent;
+				this.hitComponent.dispatchEvent("mouseenter", undefined);
 			}
 		};
 		this.canvas.addEventListener("mousemove", e => {
