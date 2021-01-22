@@ -38,6 +38,23 @@ const CustomMouseEvent = class {
 	}
 };
 
+const CustomKeyboardEvent = class {
+	constructor(e) {
+		this.key = e.key;
+		this.altKey = e.altKey;
+		this.ctrlKey = e.ctrlKey;
+		this.shiftKey = e.shiftKey;
+	}
+	static fromKeyboardEvent(e) {
+		return new CustomKeyboardEvent({
+			key: e.key,
+			altKey: e.altKey,
+			ctrlKey: e.ctrlKey,
+			shiftKey: e.shiftKey,
+		});
+	}
+};
+
 const Component = class extends EventListener {
 	constructor(left, top, width, height) {
 		super();
@@ -68,7 +85,9 @@ const Component = class extends EventListener {
 		child.parent = null;
 		this.children = this.children.filter(c => (c !== child));
 	}
-	active() {
+	active(includeParent = true) {
+		if (includeParent && (this.parent.parent !== this.parent)) { this.parent.active(true); }
+		if (this === this.parent.children[this.parent.children.length - 1]) return;
 		const thisIndex = this.parent.children.findIndex(c => (c === this));
 		for(let i = thisIndex; i < this.parent.children.length - 1; i++) {
 			const tmp = this.parent.children[i];
@@ -114,10 +133,15 @@ const Component = class extends EventListener {
 		this.onResize();
 		this.dispatchEvent("resize", { width: width, height: height });
 	}
-	isHit(localPosition) {
-		return (
+	isHit(localPosition, includeChild = true) {
+		const thisHit = (
 			(0 <= localPosition.x) && (localPosition.x < this.width) &&
 			(0 <= localPosition.y) && (localPosition.y < this.height)
+		);
+		if (thisHit) return true;
+		return (
+			includeChild &&
+			this.children.some(c => c.isHit({ x: localPosition.x - c.left, y: localPosition.y - c.top }, true))
 		);
 	}
 	getHitComponent(localPosition) {
@@ -153,6 +177,7 @@ const RootComponent = class extends Component {
 		this.lDragComponent = null;  // 右クリックでドラッグ中のコンポーネント
 		this.rDragComponent = null;  // 左クリックでドラッグ中のコンポーネント
 		this.mDragComponent = null;  // 中央クリックでドラッグ中のコンポーネント
+		this.activeChild = null;
 		this.onSetup();
 	}
 	resize(width, height) {
@@ -180,7 +205,7 @@ const RootComponent = class extends Component {
 		});
 		this.canvas.addEventListener("mousedown", e => {
 			const mouseEvent = CustomMouseEvent.fromMouseEvent(e);
-			if (mouseEvent.which === 1) { this.lDragComponent = this.getHitComponent(this.mouse); }
+			if (mouseEvent.which === 1) { this.activeChild = this.lDragComponent = this.getHitComponent(this.mouse); }
 			if (mouseEvent.which === 2) { this.mDragComponent = this.getHitComponent(this.mouse); }
 			if (mouseEvent.which === 3) { this.rDragComponent = this.getHitComponent(this.mouse); }
 			dispatchMouseEvent("mousedown", mouseEvent);
@@ -204,6 +229,18 @@ const RootComponent = class extends Component {
 		this.canvas.addEventListener("DOMMouseScroll", mousewheel);
 		this.canvas.addEventListener("pointerdown", e => { this.canvas.setPointerCapture(e.pointerId); });
 		this.canvas.addEventListener("pointerup", e => { this.canvas.releasePointerCapture(e.pointerId); });
+		this.canvas.addEventListener("keydown", e => {
+			if (this.activeChild === null) return;
+			this.activeChild.dispatchEvent("keydown", new CustomKeyboardEvent(e));
+		});
+		this.canvas.addEventListener("keyup", e => {
+			if (this.activeChild === null) return;
+			this.activeChild.dispatchEvent("keyup", new CustomKeyboardEvent(e));
+		});
+		this.canvas.addEventListener("keypress", e => {
+			if (this.activeChild === null) return;
+			this.activeChild.dispatchEvent("keypress", new CustomKeyboardEvent(e));
+		});
 		this.canvas.oncontextmenu = () => { return false; };
 	}
 };

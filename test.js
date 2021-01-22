@@ -26,8 +26,8 @@ const Test = class extends Component {
 
 const MainComponent = class extends Component {
 	onSetup() {
-		this.addChild(new Test("#F00", 10, 10, 200, 100));
-		this.addChild(new Test("#00F", 20, 20, 200, 100));
+		this.addChild(new Test("#F00", 10, 10, 200, 100)).addChild(new Test("#0F0", 20, 30, 40, 40));
+		this.addChild(new Test("#00F", 20, 20, 200, 100)).addChild(new Test("#0FF", 20, 30, 40, 40));
 	}
 	onDraw() {
 		this.context.fillStyle = "#FFF";
