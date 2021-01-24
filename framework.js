@@ -1,7 +1,7 @@
 'use strict';
 
 const CustomMouseEvent = class {
-	constructor(e = {}) {
+	constructor(e = {}, from = null) {
 		this.globalX = ((e.globalX === undefined) ? 0 : e.globalX);
 		this.globalY = ((e.globalY === undefined) ? 0 : e.globalY);
 		this.x = this.globalX;
@@ -13,6 +13,7 @@ const CustomMouseEvent = class {
 		this.shiftKey = (e.shiftKey === undefined) ? 0 : e.shiftKey;
 		this.which = (e.which === undefined) ? 0 : e.which;
 		this.wheel = (e.wheel === undefined) ? 0 : e.wheel;
+		this.from = from;
 	}
 	static fromMouseEvent(e, wheel = 0) {
 		return new CustomMouseEvent({
@@ -29,9 +30,9 @@ const CustomMouseEvent = class {
 			wheel: wheel,
 		});
 	}
-	dispatchComponent(name, component) {
+	dispatchComponent(name, component, from = null) {
 		const pivot = component.toGlobal({ x: 0, y: 0 });
-		const mouseEvent = new CustomMouseEvent(this);
+		const mouseEvent = new CustomMouseEvent(this, from);
 		mouseEvent.x = mouseEvent.globalX - pivot.x;
 		mouseEvent.y = mouseEvent.globalY - pivot.y;
 		component.dispatchEvent(name, mouseEvent);
@@ -39,11 +40,12 @@ const CustomMouseEvent = class {
 };
 
 const CustomKeyboardEvent = class {
-	constructor(e) {
+	constructor(e, from = null) {
 		this.key = e.key;
 		this.altKey = e.altKey;
 		this.ctrlKey = e.ctrlKey;
 		this.shiftKey = e.shiftKey;
+		this.from = from;
 	}
 	static fromKeyboardEvent(e) {
 		return new CustomKeyboardEvent({
@@ -52,6 +54,10 @@ const CustomKeyboardEvent = class {
 			ctrlKey: e.ctrlKey,
 			shiftKey: e.shiftKey,
 		});
+	}
+	dispatchComponent(name, component, from = null) {
+		const keyEvent = new CustomKeyboardEvent(this, from);
+		component.dispatchEvent(name, keyEvent);
 	}
 };
 
@@ -69,6 +75,16 @@ const Component = class extends EventListener {
 		this.isVisible = true;              // コンポーネントの表示
 		this.isFront = false;               // 同じ階層のコンポーネントの中で常に最前面に表示されるようにする
 		this.isClip = false;                // コンポーネントの範囲外の描画は透過する
+
+		// 親へのイベント転送
+		this.addEventListener("mousemove", e => { if (this.parent !== this) e.dispatchComponent("mousemove", this.parent, this); });
+		this.addEventListener("mousedown", e => { if (this.parent !== this) e.dispatchComponent("mousedown", this.parent, this); });
+		this.addEventListener("mouseup", e => { if (this.parent !== this) e.dispatchComponent("mouseup", this.parent, this); });
+		this.addEventListener("mousewheel", e => { if (this.parent !== this) e.dispatchComponent("mousewheel", this.parent, this); });
+		this.addEventListener("dblclick", e => { if (this.parent !== this) e.dispatchComponent("dblclick", this.parent, this); });
+		this.addEventListener("keydown", e => { if (this.parent !== this) e.dispatchComponent("keydown", this.parent, this); });
+		this.addEventListener("keyup", e => { if (this.parent !== this) e.dispatchComponent("keyup", this.parent, this); });
+		this.addEventListener("keypress", e => { if (this.parent !== this) e.dispatchComponent("keypress", this.parent, this); });
 
 		// マウスイベント処理
 		this.mouse = {
@@ -128,11 +144,6 @@ const Component = class extends EventListener {
 		}
 	}
 	update() {
-		this.mouse.wheel = 0;
-		if (this.root.activeChild !== this) {
-			Object.keys(this.key).forEach(key => { this.key[key] = false; });
-		}
-
 		this.children.filter(c => c.isFront).forEach(c => {
 			const index = this.children.findIndex(c_ => (c_ === c));
 			for(let i = index; i < this.children.length - 1; i++) {
@@ -163,6 +174,8 @@ const Component = class extends EventListener {
 		finally {
 			this.context.restore();
 		}
+
+		this.mouse.wheel = 0;
 	}
 	resize(width, height) {
 		this.width = width;
@@ -171,6 +184,7 @@ const Component = class extends EventListener {
 		this.dispatchEvent("resize", { width: width, height: height });
 	}
 	isHit(localPosition, includeChild = true) {
+		if (!this.isVisible) return false;
 		const thisHit = (
 			(0 <= localPosition.x) && (localPosition.x < this.width) &&
 			(0 <= localPosition.y) && (localPosition.y < this.height)

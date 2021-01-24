@@ -128,7 +128,7 @@ const ContextMenu = class extends Component {
 	static add(parent, getLists, callback) {
 		let menu = null;
 		const remove = () => { parent.removeChild(menu); menu = null; };
-		parent.addEventListener("mousedown", e => {
+		parent.addEventListener("mouseup", e => {
 			if (menu !== null) remove();
 			if (e.which === 3) {
 				menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, getLists()));
