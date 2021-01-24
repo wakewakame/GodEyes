@@ -7,6 +7,7 @@ const DragComponent = class extends Component {
 			this.active();
 		});
 		this.addEventListener("mousemove", e => {
+			if (e.from !== this) return;
 			if (this.mouse.lDrag) { this.left += e.movementX; this.top += e.movementY; }
 		});
 	}
@@ -89,7 +90,7 @@ const Slider = class extends Component {
 const Button = class extends Component {
 	constructor(text, left, top, width, height, font = {}, color = {}) {
 		super(left, top, width, height);
-		super.clip = true;
+		this.isClip = true;
 		this.text = text;
 		this.color = {
 			fill: (color.fill === undefined) ? "#2b2b2b" : color.fill,
@@ -124,40 +125,129 @@ const Button = class extends Component {
 	}
 };
 
-const ContextMenu = class extends Component {
-	static add(parent, getLists, callback) {
-		let menu = null;
-		const remove = () => { parent.removeChild(menu); menu = null; };
-		parent.addEventListener("mouseup", e => {
-			if (menu !== null) remove();
-			if (e.which === 3) {
-				menu = parent.addChild(new ContextMenu(parent.mouse.x, parent.mouse.y, getLists()));
-				menu.addEventListener("select", e => { remove(); callback(e); });
-			}
-		});
-	}
-	constructor(left, top, texts, width = 290) {
-		super(left - 0.5, top - 0.5, width, 1);
-		super.hookMouse = true;
-		this.texts = texts;
+const Scroll = class extends Component {
+	constructor(pageComponent, left, top, width, height) {
+		super(left, top, width, height);
+		this.isClip = true;
+		this.pageComponent = pageComponent;
+		this.scrollSpeed = 0;
 	}
 	onSetup() {
-		const h = 24;
-		this.texts.forEach((text, index) => {
-			const font = { fill: "#fff", textAlign: "left" };
-			if (text.substring(0, 2) === "__") {
-				text = text.substring(2);
-				font.fill = "#858585";
-			}
-			const button = new Button(text, 2, index * h + 4, this.width - 4, h - 2, font);
-			this.addChild(button);
+		this.addEventListener("mousewheel", e => {
+			if (e.ctrlKey) return;
+			this.scrollSpeed += e.wheel;
 		});
-		this.height = this.texts.length * h + 6;
-		this.children.forEach((c, index) => { c.addEventListener("mouseup", e => {
-			if (e.which !== 1) return;
-			if (this.texts[index].substring(0, 2) === "__") return;
-			this.dispatchEvent("select", { text: this.texts[index], index: index });
-		});});
+		this.addChild(this.pageComponent);
+		const ScrollBar = class extends Component {
+			constructor() {
+				super(0, 0, 17, 0);
+				this.dragStartY = 0;
+				this.dragStartTop = 0;
+				this.dragStartBottom = 0;
+				this.barTop = 0;
+				this.barHeight = 0;
+			}
+			onSetup() {
+				this.addEventListener("mousedown", e => {
+					this.dragStartY = this.mouse.y;
+					this.dragStartTop = this.barTop;
+					this.dragStartBottom = this.barTop + this.barHeight;
+				});
+			}
+			onUpdate() {
+				const page = this.parent.pageComponent;
+				this.left = this.parent.width - this.width;
+				this.height = this.parent.height;
+				this.barHeight = this.height * this.height / page.height;
+				if (this.mouse.lDrag) {
+					let barTop = 0;
+					if ((this.dragStartTop <= this.dragStartY) && (this.dragStartY < this.dragStartBottom)) {
+						barTop = this.dragStartTop + this.mouse.y - this.dragStartY;
+					}
+					else {
+						barTop = this.mouse.y - this.barHeight * 0.5;
+					}
+					barTop = Math.max(barTop, 0);
+					barTop = Math.min(barTop, this.height - this.barHeight);
+					page.top = -page.height * barTop / this.height;
+				}
+				this.barTop = this.height * (-page.top) / page.height;
+			}
+			onDraw() {
+				const page = this.parent.pageComponent;
+				if ((page.height === 0) || (page.height <= this.parent.height)) return;
+				this.context.fillStyle = "#171717";
+				this.context.fillRect(0, 0, this.width, this.parent.height);
+				this.context.fillStyle = "#4d4d4d";
+				this.context.fillRect(1, 1 + this.barTop, this.width - 2, this.barHeight - 2);
+			};
+		};
+		this.scrollbar = this.addChild(new ScrollBar());
+	}
+	onUpdate() {
+		// 方向キーでスクロール
+		this.scrollSpeed += this.key.ArrowUp   ? 10.0 : 0.0;
+		this.scrollSpeed -= this.key.ArrowDown ? 10.0 : 0.0;
+
+		// 通常のスクロール
+		const top = this.pageComponent.top;
+		this.pageComponent.top += this.scrollSpeed;
+
+		// スクロールの上限チェック
+		this.pageComponent.top = Math.max(this.pageComponent.top, this.height - this.pageComponent.height);
+		this.pageComponent.top = Math.min(this.pageComponent.top, 0);
+
+		this.pageComponent.mouse.y -= this.pageComponent.top - top;
+
+		// スクロール速度の減衰
+		this.scrollSpeed *= 0.6;
+	}
+	onResize() {
+		this.pageComponent.left = 0;
+		this.pageComponent.width = this.width - 17;
+	}
+};
+
+const ContextMenu = class extends Component {
+	constructor(getMenuList, onSelect, left = 0, top = 0, width = 290) {
+		super(left - 0.5, top - 0.5, width, 1);
+		this.isVisible = false;
+		this.isFront = true;
+		this.getMenuList = getMenuList;
+		this.onSelect = onSelect;
+	}
+	onSetup() {
+		this.parent.addEventListener("mousedown", e => {
+			if (this.isVisible && (!this.isHit({ x: e.x - this.left, y: e.y - this.top }))) {
+				this.isVisible = false;
+			}
+		});
+		this.parent.addEventListener("mouseup", e => {
+			if (e.which === 3) {
+				this.isVisible = true;
+				this.left = e.x; this.top = e.y;
+				this.children.slice().forEach(c => { this.removeChild(c); });
+				const h = 24;
+				const font = { fill: "#fff", textAlign: "left" };
+				const texts = this.getMenuList();
+				texts.forEach((text, index) => {
+					if (text.substring(0, 2) === "__") {
+						text = text.substring(2);
+						font.fill = "#858585";
+					}
+					const button = new Button(text, 2, index * h + 4, this.width - 4, h - 2, font);
+					this.addChild(button);
+				});
+				this.height = texts.length * h + 6;
+				this.children.forEach((c, index) => { c.addEventListener("mouseup", e => {
+					if (e.which !== 1) return;
+					if (texts[index].substring(0, 2) === "__") return;
+					if (!c.isHit(e)) return;
+					this.isVisible = false;
+					this.onSelect({ text: texts[index], index: index });
+				});});
+			}
+		});
 	}
 	onDraw() {
 		this.context.fillStyle = "#2b2b2b";

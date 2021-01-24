@@ -3,23 +3,20 @@
 const ButtonComponent = class extends Component {
 	constructor(label, left, top, width, height) {
 		super(left, top, width, height);
-		this.label = label;
-		this.pLDrag = false;
-	}
-	onUpdate() {
-		if (this.pLDrag && (!this.mouse.lDrag) && this.mouse.over) {
-			this.dispatchEvent(new CustomEvent("click"));
-		}
-		this.pLDrag = this.mouse.lDrag;
+		this.img = null;
 	}
 	onDraw() {
-		this.context.fillStyle = "#000";
-		this.context.fillRect(0, 0, this.width, this.height);
-		this.context.fillStyle = "#fff";
-		this.context.textBaseline = "middle";
-		this.context.textAlign = "center";
-		this.context.fonr = "48px sans-serif";
-		this.context.fillText(this.label, this.width * 0.5, this.height * 0.5);
+		if (this.img !== null) {
+			const scale =
+				(this.img.width / this.img.height > this.width / this.height)
+					? (this.width / this.img.width)
+					: (this.height / this.img.height);
+			const width = this.img.width * scale;
+			const height = this.img.height * scale;
+			const left = (this.width - width ) * 0.5;
+			const top = (this.height - height) * 0.5;
+			this.context.drawImage(this.img, left, top, width, height);
+		}
 	}
 }
 
@@ -32,9 +29,11 @@ const MainComponent = class extends Component {
 		this.viewer.addEventListener("open", e => {
 			this.viewer.isVisible = false;
 			this.button.isVisible = true;
+			this.button.img = e.img;
 			this.activeChild = this.button;
 		});
-		this.button.addEventListener("click", e => {
+		this.button.addEventListener("mouseup", e => {
+			if (!this.button.isHit(e)) return;
 			this.viewer.isVisible = true;
 			this.button.isVisible = false;
 			this.activeChild = this.viewer;
@@ -46,8 +45,6 @@ const MainComponent = class extends Component {
 	}
 	onResize() {
 		this.viewer.resize(this.width - 40, this.height - 40);
-		this.button.left = this.width * 0.5 - 200;
-		this.button.top = this.height * 0.5 - 100;
-		this.button.resize(400, 200);
+		this.button.resize(this.width, this.height);
 	}
 };

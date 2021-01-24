@@ -32,7 +32,7 @@ const CustomMouseEvent = class {
 	}
 	dispatchComponent(name, component, from = null) {
 		const pivot = component.toGlobal({ x: 0, y: 0 });
-		const mouseEvent = new CustomMouseEvent(this, from);
+		const mouseEvent = new CustomMouseEvent(this, (from === null) ? this.from : from);
 		mouseEvent.x = mouseEvent.globalX - pivot.x;
 		mouseEvent.y = mouseEvent.globalY - pivot.y;
 		component.dispatchEvent(name, mouseEvent);
@@ -56,7 +56,7 @@ const CustomKeyboardEvent = class {
 		});
 	}
 	dispatchComponent(name, component, from = null) {
-		const keyEvent = new CustomKeyboardEvent(this, from);
+		const keyEvent = new CustomKeyboardEvent(this, (from === null) ? this.from : from);
 		component.dispatchEvent(name, keyEvent);
 	}
 };
@@ -77,14 +77,14 @@ const Component = class extends EventListener {
 		this.isClip = false;                // コンポーネントの範囲外の描画は透過する
 
 		// 親へのイベント転送
-		this.addEventListener("mousemove", e => { if (this.parent !== this) e.dispatchComponent("mousemove", this.parent, this); });
-		this.addEventListener("mousedown", e => { if (this.parent !== this) e.dispatchComponent("mousedown", this.parent, this); });
-		this.addEventListener("mouseup", e => { if (this.parent !== this) e.dispatchComponent("mouseup", this.parent, this); });
-		this.addEventListener("mousewheel", e => { if (this.parent !== this) e.dispatchComponent("mousewheel", this.parent, this); });
-		this.addEventListener("dblclick", e => { if (this.parent !== this) e.dispatchComponent("dblclick", this.parent, this); });
-		this.addEventListener("keydown", e => { if (this.parent !== this) e.dispatchComponent("keydown", this.parent, this); });
-		this.addEventListener("keyup", e => { if (this.parent !== this) e.dispatchComponent("keyup", this.parent, this); });
-		this.addEventListener("keypress", e => { if (this.parent !== this) e.dispatchComponent("keypress", this.parent, this); });
+		this.addEventListener("mousemove", e => { if (this.parent !== this) e.dispatchComponent("mousemove", this.parent); });
+		this.addEventListener("mousedown", e => { if (this.parent !== this) e.dispatchComponent("mousedown", this.parent); });
+		this.addEventListener("mouseup", e => { if (this.parent !== this) e.dispatchComponent("mouseup", this.parent); });
+		this.addEventListener("mousewheel", e => { if (this.parent !== this) e.dispatchComponent("mousewheel", this.parent); });
+		this.addEventListener("dblclick", e => { if (this.parent !== this) e.dispatchComponent("dblclick", this.parent); });
+		this.addEventListener("keydown", e => { if (this.parent !== this) e.dispatchComponent("keydown", this.parent); });
+		this.addEventListener("keyup", e => { if (this.parent !== this) e.dispatchComponent("keyup", this.parent); });
+		this.addEventListener("keypress", e => { if (this.parent !== this) e.dispatchComponent("keypress", this.parent); });
 
 		// マウスイベント処理
 		this.mouse = {
@@ -93,11 +93,15 @@ const Component = class extends EventListener {
 			wheel: 0, over: false
 		};
 		this.addEventListener("mousedown", e => {
+			this.mouse.x = e.x;
+			this.mouse.y = e.y;
 			if (e.which === 1) this.mouse.lDrag = true;
 			if (e.which === 2) this.mouse.mDrag = true;
 			if (e.which === 3) this.mouse.rDrag = true;
 		});
 		this.addEventListener("mouseup", e => {
+			this.mouse.x = e.x;
+			this.mouse.y = e.y;
 			if (e.which === 1) this.mouse.lDrag = false;
 			if (e.which === 2) this.mouse.mDrag = false;
 			if (e.which === 3) this.mouse.rDrag = false;
@@ -106,7 +110,11 @@ const Component = class extends EventListener {
 			this.mouse.x = e.x;
 			this.mouse.y = e.y;
 		});
-		this.addEventListener("mousewheel", e => { this.mouse.wheel += e.wheel; });
+		this.addEventListener("mousewheel", e => {
+			this.mouse.x = e.x;
+			this.mouse.y = e.y;
+			this.mouse.wheel += e.wheel;
+		});
 		this.addEventListener("mouseenter", e => { this.mouse.over = true; });
 		this.addEventListener("mouseleave", e => { this.mouse.over = false; });
 
@@ -221,9 +229,9 @@ const RootComponent = class extends Component {
 	constructor(canvas) {
 		super(0, 0, canvas.width, canvas.height);
 		this.canvas = canvas;
-		super.context = this.canvas.getContext("2d");
-		super.root = this;
-		super.parent = this;
+		this.context = this.canvas.getContext("2d");
+		this.root = this;
+		this.parent = this;
 		this.lDragComponent = null;  // 右クリックでドラッグ中のコンポーネント
 		this.rDragComponent = null;  // 左クリックでドラッグ中のコンポーネント
 		this.mDragComponent = null;  // 中央クリックでドラッグ中のコンポーネント
@@ -246,11 +254,11 @@ const RootComponent = class extends Component {
 				[this.lDragComponent, this.rDragComponent, this.mDragComponent].filter(c => (c !== null))
 			);
 			if (dragComponent.size > 0) {
-				dragComponent.forEach(c => { e.dispatchComponent(name, c); });
+				dragComponent.forEach(c => { e.dispatchComponent(name, c, c); });
 				return;
 			}
 			const hitComponent = this.getHitComponent(e);
-			e.dispatchComponent(name, hitComponent);
+			e.dispatchComponent(name, hitComponent, hitComponent);
 			if (this.hitComponent !== hitComponent) {
 				if (this.hitComponent !== null) { this.hitComponent.dispatchEvent("mouseleave", undefined); }
 				this.hitComponent = hitComponent;
@@ -288,15 +296,15 @@ const RootComponent = class extends Component {
 		this.canvas.addEventListener("pointerup", e => { this.canvas.releasePointerCapture(e.pointerId); });
 		this.canvas.oncontextmenu = () => { return false; };
 		this.canvas.addEventListener("keydown", e => {
-			if (this.activeChild === null) return;
+			if (this.activeChild.parent === null) return;
 			this.activeChild.dispatchEvent("keydown", new CustomKeyboardEvent(e));
 		});
 		this.canvas.addEventListener("keyup", e => {
-			if (this.activeChild === null) return;
+			if (this.activeChild.parent === null) return;
 			this.activeChild.dispatchEvent("keyup", new CustomKeyboardEvent(e));
 		});
 		this.canvas.addEventListener("keypress", e => {
-			if (this.activeChild === null) return;
+			if (this.activeChild.parent === null) return;
 			this.activeChild.dispatchEvent("keypress", new CustomKeyboardEvent(e));
 		});
 		document.addEventListener("dragover", e => { e.preventDefault(); });
