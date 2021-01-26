@@ -1,6 +1,6 @@
 'use strict';
 
-const Test = class extends DragComponent {
+const Test = class extends DragComp {
 	constructor(color, left, top, width, height) {
 		super(left, top, width, height);
 		this.color = color;

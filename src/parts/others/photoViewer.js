@@ -1,6 +1,6 @@
 'use strict';
 
-const PhotoItemComponent = class extends Component {
+const PhotoItemComp = class extends Component {
 	static async create(file, name) {
 		// fileからimg要素の生成
 		const url = URL.createObjectURL(file);
@@ -33,7 +33,7 @@ const PhotoItemComponent = class extends Component {
 			}));
 		}
 		
-		return new PhotoItemComponent(file, name, img, thumbnail);
+		return new PhotoItemComp(file, name, img, thumbnail);
 	}
 	constructor(file, name, img, thumbnail) {
 		super(0, 0, 1, 1);
@@ -76,9 +76,9 @@ const PhotoItemComponent = class extends Component {
 	}
 };
 
-const PhotoViewerComponent = class extends Scroll {
+const PhotoViewerComp = class extends ScrollComp {
 	constructor(left, top, width, height) {
-		const InnerComponent = class extends Component {
+		const InnerComp = class extends Component {
 			onSetup() {
 				this.zoom = 1.0;            // 拡大率
 				this.zoomSpeed = 0;         // 拡大速度(スムーズなアニメーションになるように計算するため)
@@ -104,14 +104,14 @@ const PhotoViewerComponent = class extends Scroll {
 			}
 			addChild(child) {
 				super.addChild(child);
-				if (child instanceof PhotoItemComponent) {
+				if (child instanceof PhotoItemComp) {
 					this.photos.push(child);
 				}
 				return child;
 			}
 			removeChild(child) {
 				super.removeChild(child);
-				if (child instanceof PhotoItemComponent) {
+				if (child instanceof PhotoItemComp) {
 					this.photos = this.photos.filter(c => (c !== child));
 				}
 				return child;
@@ -208,7 +208,7 @@ const PhotoViewerComponent = class extends Scroll {
 			}
 			shortcut() {
 				// 右クリックでコンテキストメニューの表示
-				const menu = new ContextMenu(() => {
+				const menu = new ContextMenuComp(() => {
 					const result = [];
 					if (this.photos.some(c => c.isSelected)) result.push("delete");
 					else result.push("__delete");
@@ -272,14 +272,14 @@ const PhotoViewerComponent = class extends Scroll {
 							name = "(" + number + ") " + file.name;
 							number += 1;
 						}
-						PhotoItemComponent.create(file, name)
+						PhotoItemComp.create(file, name)
 							.then(component => { this.addChild(component); })
 							.catch(err => { console.error(err); });
 					}
 				});
 			}
 		};
-		super(new InnerComponent(), left, top, width, height);
+		super(new InnerComp(), left, top, width, height);
 		super.onResize();
 	}
 	onSetup() {

@@ -1,13 +1,13 @@
 'use strict';
 
-const LinePicker = class extends Component {
+const LinePickerComp = class extends Component {
 	constructor(color) {
 		super(0, 0, 1, 1);
 		this.color = color;
 	}
 	onSetup() {
-		this.p1 = this.addChild(new Picker(5, this.color));
-		this.p2 = this.addChild(new Picker(5, this.color));
+		this.p1 = this.addChild(new PickerComp(5, this.color));
+		this.p2 = this.addChild(new PickerComp(5, this.color));
 		this.p1.value.x = Math.random();
 		this.p1.value.y = Math.random();
 		this.p2.value.x = Math.random();
@@ -33,7 +33,7 @@ const LinePicker = class extends Component {
 	}
 };
 
-const EditorComponent = class extends Component {
+const EditorComp = class extends Component {
 	constructor(img, left, top, width, height) {
 		super(left, top, width, height);
 		this.img = img;
@@ -42,10 +42,10 @@ const EditorComponent = class extends Component {
 		});
 	}
 	onSetup () {
-		this.linePicker1 = this.addChild(new LinePicker("#f02b7d"));
-		this.linePicker2 = this.addChild(new LinePicker("#f02b7d"));
-		this.linePicker3 = this.addChild(new LinePicker("#f02b7d"));
-		this.linePicker4 = this.addChild(new LinePicker("#f02b7d"));
+		this.linePicker1 = this.addChild(new LinePickerComp("#f02b7d"));
+		this.linePicker2 = this.addChild(new LinePickerComp("#f02b7d"));
+		this.linePicker3 = this.addChild(new LinePickerComp("#f02b7d"));
+		this.linePicker4 = this.addChild(new LinePickerComp("#f02b7d"));
 	}
 	onDraw() {
 		this.context.drawImage(this.img, 0, 0, this.width, this.height);
