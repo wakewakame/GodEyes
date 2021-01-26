@@ -280,6 +280,7 @@ const PhotoViewerComponent = class extends Scroll {
 			}
 		};
 		super(new InnerComponent(), left, top, width, height);
+		super.onResize();
 	}
 	onSetup() {
 		super.onSetup();

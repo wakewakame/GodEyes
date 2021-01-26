@@ -23,20 +23,15 @@ const ButtonComponent = class extends Component {
 const MainComponent = class extends Component {
 	onSetup() {
 		this.viewer = this.addChild(new PhotoViewerComponent(20, 20, this.width - 40, this.height - 40));
-		this.button = this.addChild(new ButtonComponent("click here", 0, 0, 1, 1));
-		this.button.isVisible = false;
-		this.onResize();
+		this.editor = null;
 		this.viewer.addEventListener("open", e => {
+			this.editor = this.addChild(new EditorComponent(e.img, 0, 0, this.width, this.height));
 			this.viewer.isVisible = false;
-			this.button.isVisible = true;
-			this.button.img = e.img;
-			this.activeChild = this.button;
-		});
-		this.button.addEventListener("mouseup", e => {
-			if (!this.button.isHit(e)) return;
-			this.viewer.isVisible = true;
-			this.button.isVisible = false;
-			this.activeChild = this.viewer;
+			this.editor.addEventListener("exit", e => {
+				this.removeChild(this.editor);
+				this.editor = null;
+				this.viewer.isVisible = true;
+			});
 		});
 	}
 	onDraw() {
@@ -45,6 +40,6 @@ const MainComponent = class extends Component {
 	}
 	onResize() {
 		this.viewer.resize(this.width - 40, this.height - 40);
-		this.button.resize(this.width, this.height);
+		if (this.editor !== null) this.editor.resize(this.width, this.height);
 	}
 };

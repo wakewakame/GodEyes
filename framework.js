@@ -77,14 +77,14 @@ const Component = class extends EventListener {
 		this.isClip = false;                // コンポーネントの範囲外の描画は透過する
 
 		// 親へのイベント転送
-		this.addEventListener("mousemove", e => { if (this.parent !== this) e.dispatchComponent("mousemove", this.parent); });
-		this.addEventListener("mousedown", e => { if (this.parent !== this) e.dispatchComponent("mousedown", this.parent); });
-		this.addEventListener("mouseup", e => { if (this.parent !== this) e.dispatchComponent("mouseup", this.parent); });
-		this.addEventListener("mousewheel", e => { if (this.parent !== this) e.dispatchComponent("mousewheel", this.parent); });
-		this.addEventListener("dblclick", e => { if (this.parent !== this) e.dispatchComponent("dblclick", this.parent); });
-		this.addEventListener("keydown", e => { if (this.parent !== this) e.dispatchComponent("keydown", this.parent); });
-		this.addEventListener("keyup", e => { if (this.parent !== this) e.dispatchComponent("keyup", this.parent); });
-		this.addEventListener("keypress", e => { if (this.parent !== this) e.dispatchComponent("keypress", this.parent); });
+		this.addEventListener("mousemove", e => { if (this.parent !== null) e.dispatchComponent("mousemove", this.parent); });
+		this.addEventListener("mousedown", e => { if (this.parent !== null) e.dispatchComponent("mousedown", this.parent); });
+		this.addEventListener("mouseup", e => { if (this.parent !== null) e.dispatchComponent("mouseup", this.parent); });
+		this.addEventListener("mousewheel", e => { if (this.parent !== null) e.dispatchComponent("mousewheel", this.parent); });
+		this.addEventListener("dblclick", e => { if (this.parent !== null) e.dispatchComponent("dblclick", this.parent); });
+		this.addEventListener("keydown", e => { if (this.parent !== null) e.dispatchComponent("keydown", this.parent); });
+		this.addEventListener("keyup", e => { if (this.parent !== null) e.dispatchComponent("keyup", this.parent); });
+		this.addEventListener("keypress", e => { if (this.parent !== null) e.dispatchComponent("keypress", this.parent); });
 
 		// マウスイベント処理
 		this.mouse = {
@@ -142,7 +142,8 @@ const Component = class extends EventListener {
 		this.children = this.children.filter(c => (c !== child));
 	}
 	active(includeParent = true) {
-		if (includeParent && (this.parent.parent !== this.parent)) { this.parent.active(true); }
+		if (this.parent === null) return;
+		if (includeParent) { this.parent.active(true); }
 		if (this === this.parent.children[this.parent.children.length - 1]) return;
 		const thisIndex = this.parent.children.findIndex(c => (c === this));
 		for(let i = thisIndex; i < this.parent.children.length - 1; i++) {
@@ -214,7 +215,7 @@ const Component = class extends EventListener {
 		return this;
 	}
 	toGlobal(position) {
-		if (this === this.root) return position;
+		if (this.parent === null) return position;
 		const result = { x: position.x + this.left, y: position.y + this.top };
 		return this.parent.toGlobal(result);
 	}
@@ -231,7 +232,7 @@ const RootComponent = class extends Component {
 		this.canvas = canvas;
 		this.context = this.canvas.getContext("2d");
 		this.root = this;
-		this.parent = this;
+		this.parent = null;
 		this.lDragComponent = null;  // 右クリックでドラッグ中のコンポーネント
 		this.rDragComponent = null;  // 左クリックでドラッグ中のコンポーネント
 		this.mDragComponent = null;  // 中央クリックでドラッグ中のコンポーネント

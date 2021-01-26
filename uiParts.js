@@ -3,12 +3,18 @@
 const DragComponent = class extends Component {
 	constructor(left, top, width, height) {
 		super(left, top, width, height);
+		this.dragStart = { x: 0, y: 0 };
 		this.addEventListener("mousedown", e => {
 			this.active();
+			this.dragStart.x = e.x;
+			this.dragStart.y = e.y;
 		});
 		this.addEventListener("mousemove", e => {
 			if (e.from !== this) return;
-			if (this.mouse.lDrag) { this.left += e.movementX; this.top += e.movementY; }
+			if (this.mouse.lDrag) {
+				this.left += this.mouse.x - this.dragStart.x;
+				this.top += this.mouse.y - this.dragStart.y;
+			}
 		});
 	}
 };
@@ -21,42 +27,50 @@ const Picker = class extends DragComponent {
 		this.enableX = (enableX === undefined) ? true : enableX;
 		this.enableY = (enableY === undefined) ? true : enableY;
 		this.value = { x: 0, y: 0 };
+		this.targetR = this.radius;
+		this.currentR = this.radius;
 	}
 	onUpdate() {
+		if (this.mouse.over && !this.mouse.lDrag) { this.targetR = this.radius * 2; }
+		else { this.targetR = this.radius; }
+		this.currentR += (this.targetR - this.currentR) * 0.5;
+
 		if (this.enableX) {
 			if (this.mouse.lDrag) {
-				this.value.x = (this.left + this.radius) / this.parent.width;
+				this.value.x = this.left / this.parent.width;
 			}
 			else {
-				this.left = this.value.x * this.parent.width - this.radius;
+				this.left = this.value.x * this.parent.width;
 			}
-			this.left = Math.max(Math.min(this.left, this.parent.width - this.radius), -this.radius);
+			this.left = Math.max(Math.min(this.left, this.parent.width), 0);
 			this.value.x = Math.max(Math.min(this.value.x, 1), 0);
 		}
 		else {
-			this.left = this.parent.width * 0.5 - this.radius;
+			this.left = this.parent.width * 0.5;
 		}
 		if (this.enableY) {
 			if (this.mouse.lDrag) {
-				this.value.y = (this.top + this.radius) / this.parent.height;
+				this.value.y = this.top / this.parent.height;
 			}
 			else {
-				this.top = this.value.y * this.parent.height - this.radius;
+				this.top = this.value.y * this.parent.height;
 			}
-			this.top = Math.max(Math.min(this.top, this.parent.height - this.radius), -this.radius);
+			this.top = Math.max(Math.min(this.top, this.parent.height), 0);
 			this.value.y = Math.max(Math.min(this.value.y, 1), 0);
 		}
 		else {
-			this.top = this.parent.height * 0.5 - this.radius;
+			this.top = this.parent.height * 0.5;
 		}
 	}
 	onDraw() {
 		this.context.fillStyle = this.color;
 		this.context.beginPath();
-		this.context.arc(this.radius, this.radius, this.radius, 0, 2 * Math.PI);
+		this.context.arc(0, 0, this.currentR, 0, 2 * Math.PI);
 		this.context.fill();
 	}
-	isHit(p, i) { return ((p.x - this.left + this.radius) ** 2) + ((p.y - this.top + this.radius) ** 2) < (this.radius ** 2); }
+	isHit(p, i) {
+		return (p.x ** 2) + (p.y ** 2) < (this.currentR ** 2);
+	}
 };
 
 const Slider = class extends Component {
