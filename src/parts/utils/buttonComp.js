@@ -17,6 +17,13 @@ const ButtonComp = class extends Component {
 			fill: (font.fill === undefined) ? "#fff" : font.fill
 		};
 	}
+	onSetup() {
+		this.addEventListener("mouseup", e => {
+			if (e.which !== 1) return;
+			if (!this.isHit(e)) return;
+			this.dispatchEvent("click", {});
+		});
+	}
 	onDraw() {
 		this.context.fillStyle = this.mouse.over ? this.color.highlight : this.color.fill;
 		this.context.strokeStyle = this.color.stroke;

@@ -31,10 +31,8 @@ const ContextMenuComp = class extends Component {
 					this.addChild(button);
 				});
 				this.height = texts.length * h + 6;
-				this.children.forEach((c, index) => { c.addEventListener("mouseup", e => {
-					if (e.which !== 1) return;
+				this.children.forEach((c, index) => { c.addEventListener("click", e => {
 					if (texts[index].substring(0, 2) === "__") return;
-					if (!c.isHit(e)) return;
 					this.isVisible = false;
 					this.onSelect({ text: texts[index], index: index });
 				});});

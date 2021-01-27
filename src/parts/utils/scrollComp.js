@@ -1,10 +1,10 @@
 'use strict';
 
 const ScrollComp = class extends Component {
-	constructor(pageComponent, left, top, width, height) {
+	constructor(pageComp, left, top, width, height) {
 		super(left, top, width, height);
 		this.isClip = true;
-		this.pageComponent = pageComponent;
+		this.pageComp = pageComp;
 		this.scrollSpeed = 0;
 	}
 	onSetup() {
@@ -12,7 +12,7 @@ const ScrollComp = class extends Component {
 			if (e.ctrlKey) return;
 			this.scrollSpeed += e.wheel;
 		});
-		this.addChild(this.pageComponent);
+		this.addChild(this.pageComp);
 		const ScrollBar = class extends Component {
 			constructor() {
 				super(0, 0, 17, 0);
@@ -30,7 +30,7 @@ const ScrollComp = class extends Component {
 				});
 			}
 			onUpdate() {
-				const page = this.parent.pageComponent;
+				const page = this.parent.pageComp;
 				this.left = this.parent.width - this.width;
 				this.height = this.parent.height;
 				this.barHeight = this.height * this.height / page.height;
@@ -49,8 +49,8 @@ const ScrollComp = class extends Component {
 				this.barTop = this.height * (-page.top) / page.height;
 			}
 			onDraw() {
-				const page = this.parent.pageComponent;
-				if ((page.height === 0) || (page.height <= this.parent.height)) return;
+				const page = this.parent.pageComp;
+				if (page.height <= this.parent.height) return;
 				this.context.fillStyle = "#171717";
 				this.context.fillRect(0, 0, this.width, this.parent.height);
 				this.context.fillStyle = "#4d4d4d";
@@ -65,20 +65,22 @@ const ScrollComp = class extends Component {
 		this.scrollSpeed -= this.key.ArrowDown ? 10.0 : 0.0;
 
 		// 通常のスクロール
-		const top = this.pageComponent.top;
-		this.pageComponent.top += this.scrollSpeed;
+		const top = this.pageComp.top;
+		this.pageComp.top += this.scrollSpeed;
 
 		// スクロールの上限チェック
-		this.pageComponent.top = Math.max(this.pageComponent.top, this.height - this.pageComponent.height);
-		this.pageComponent.top = Math.min(this.pageComponent.top, 0);
+		this.pageComp.top = Math.max(this.pageComp.top, this.height - this.pageComp.height);
+		this.pageComp.top = Math.min(this.pageComp.top, 0);
 
-		this.pageComponent.mouse.y -= this.pageComponent.top - top;
+		this.pageComp.mouse.y -= this.pageComp.top - top;
+
+		this.pageComp.left = 0;
+		this.pageComp.width = this.width;
+		if (this.pageComp.height > this.parent.height) {
+			this.pageComp.width -= 17;
+		}
 
 		// スクロール速度の減衰
 		this.scrollSpeed *= 0.6;
-	}
-	onResize() {
-		this.pageComponent.left = 0;
-		this.pageComponent.width = this.width - 17;
 	}
 };

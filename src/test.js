@@ -1,30 +1,26 @@
 'use strict';
 
-const Test = class extends DragComp {
-	constructor(color, left, top, width, height) {
-		super(left, top, width, height);
-		this.color = color;
+const Tmp = class extends Component {
+	onSetup() {
+		this.button = this.addChild(new ButtonComp("abc", 2, 2, this.width - 4, this.height - 4));
+		this.button.addEventListener("click", e => {
+			console.log(this.parent.children.findIndex(c => (c === this)));
+		});
 	}
 	onUpdate() {
-		if (this.root.activeChild !== this) return;
-		if (this.key.ArrowLeft)  this.left -= 3;
-		if (this.key.ArrowRight) this.left += 3;
-		if (this.key.ArrowUp)    this.top  -= 3;
-		if (this.key.ArrowDown)  this.top  += 3;
-	}
-	onDraw() {
-		this.context.fillStyle = this.color;
-		this.context.fillRect(0, 0, this.width, this.height);
-		if (!this.mouse.over) return;
-		this.context.fillStyle = "#ffffff70";
-		this.context.fillRect(0, 0, this.width, this.height);
+		this.button.width = this.width - 4;
+		this.button.height = this.height - 4;
 	}
 };
 
 const MainComponent = class extends Component {
 	onSetup() {
-		this.addChild(new Test("#F00", 10, 10, 200, 100)).addChild(new Test("#0F0", 20, 30, 40, 40));
-		this.addChild(new Test("#00F", 20, 20, 200, 100)).addChild(new Test("#0FF", 20, 30, 40, 40));
+		const list = this.addChild(new ListComp(10, 10, 300, 500));
+		for(let i = 0; i < 100; i++) {
+			list.addListItem(new Tmp(0, 0, 1, 40));
+		}
+	}
+	onUpdate() {
 	}
 	onDraw() {
 		this.context.fillStyle = "#FFF";

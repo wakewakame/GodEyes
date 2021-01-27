@@ -280,12 +280,11 @@ const PhotoViewerComp = class extends ScrollComp {
 			}
 		};
 		super(new InnerComp(), left, top, width, height);
-		super.onResize();
 	}
 	onSetup() {
 		super.onSetup();
 		// アイコンのダブルクリック時にイベントリスナーを発火
-		const inner = this.pageComponent;
+		const inner = this.pageComp;
 		this.addEventListener("dblclick", e => {
 			if (inner.photos.some(c => (c === e.from))) this.dispatchEvent("open", e.from);
 		});
